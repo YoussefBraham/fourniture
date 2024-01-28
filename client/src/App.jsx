@@ -4,8 +4,11 @@ import IndexPage from "./pages/IndexPage.jsx";
 import Panier from "./pages/panier.jsx";
 import Compte from "./pages/compte.jsx";
 import Admin from "./pages/admin_pages/admin.jsx";
-
 import Layout from "./Layout"
+import axios from 'axios';
+
+
+axios.defaults.baseURL = 'https://us-central1-founitures-6f03c.cloudfunctions.net/api';
 
 
 function App() {
@@ -17,8 +20,6 @@ function App() {
           <Route index element={<IndexPage />} />
           <Route path="/panier" element={<Panier />} />
           <Route path="/compte" element={<Compte />} />
-
-
         </Route>
       </Routes>
     </BrowserRouter>
