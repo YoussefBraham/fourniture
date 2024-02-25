@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {Link} from "react-router-dom";
 import { Navigate, useParams } from "react-router-dom";
+import Products from './products.jsx'
+
 
 import Creation_liste_scolaire from './creation_liste_scolaire.jsx'; 
 
