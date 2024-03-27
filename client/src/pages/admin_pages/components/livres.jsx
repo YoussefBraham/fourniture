@@ -19,6 +19,7 @@ const Livres = ({ livreid }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(5);
 
+    // Update displayedData state with filtered data
     useEffect(() => {
         const filteredData = Object.entries(cachedData).flatMap(([niveau, niveauData]) =>
             Object.entries(niveauData).flatMap(([category, books]) => {
@@ -34,8 +35,6 @@ const Livres = ({ livreid }) => {
                 }
             })
         );
-
-        // Update displayedData state with filtered data
         setDisplayedData(filteredData);
     }, [cachedData, selectedCategory_1, selectedCategory_2]);
 
@@ -44,14 +43,14 @@ const Livres = ({ livreid }) => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = displayedData.slice(indexOfFirstItem, indexOfLastItem);
 
- // Calculate total number of pages
-const totalPages = Math.ceil(displayedData.length / itemsPerPage);
+    // Calculate total number of pages
+    const totalPages = Math.ceil(displayedData.length / itemsPerPage);
 
-// Generate an array of page numbers to display
-const pageNumbers = [];
-for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-}
+    // Generate an array of page numbers to display
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+    }
 
   // Function to handle page change
   const handlePageChange = (pageNumber) => {
@@ -67,6 +66,7 @@ for (let i = 1; i <= totalPages; i++) {
                 setLivreCategory(responseData);
             });
     }, []);
+    console.log('livreCategory',livreCategory)
 
     // Function to fetch data from backend and cache it
     const fetchData = async (niveau, category) => {
@@ -96,6 +96,7 @@ for (let i = 1; i <= totalPages; i++) {
         setSelectedCategory_1(uniqueCategory1[0]);
     };
 
+// Handler for niveau click
     useEffect(() => {
         const fetchDataAndUpdateCategory2 = async () => {
             const data = await fetchData(selectedNiveau, selectedCategory_1);
@@ -110,11 +111,10 @@ for (let i = 1; i <= totalPages; i++) {
                 setSelectedCategory_2('');
             }
         };
+        
     
         fetchDataAndUpdateCategory2();
     }, [selectedCategory_1, selectedNiveau]);
-    
-
 
     // Handler for category 1 click
     const handleCategory1Click = async (category1) => {
@@ -161,6 +161,7 @@ for (let i = 1; i <= totalPages; i++) {
         }
     }
 
+    console.log()
 
     return (
         <div className='flex flex-col w-full m-5 items-center'>          

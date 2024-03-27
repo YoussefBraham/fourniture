@@ -16,14 +16,25 @@ try {
     const response = await pool.query("SELECT * FROM ecoles");
     res.json(response.rows);}
 catch{
-    console.log("erreur");}}); 
+    console.log("erreur_ecole");}}); 
 
 app.get('/fournitures', async (req, res) => {
         try {
             const response = await pool.query("SELECT * FROM fournitures");
             res.json(response.rows);}
         catch{
-            console.log("erreur");}});
+            console.log("erreur_fournitures");}});
+
+app.get('/fournitures_by_selection', async (req, res) => {
+              try {
+                const { ecole, classe, matiere } = req.query;
+                const response = await pool.query("SELECT * FROM fourniture_classes WHERE nom_ecole = $1 AND nom_classe = $2 AND nom_matiere = $3", [ecole, classe, matiere]);
+                res.json(response.rows);
+              } catch (error) {
+                console.error('Error fetching data:', error);
+                res.status(500).json({ error: 'Internal Server Error' });
+              }
+});
 
 app.post('/creation_liste', async (req, res) => {
     try {
@@ -50,6 +61,17 @@ app.get('/all_fourniture_classe', async (req, res) => {
     try {
       const { ecole, classe } = req.query;
       const response = await pool.query("SELECT * FROM fourniture_classes WHERE nom_ecole = $1 AND nom_classe = $2", [ecole, classe]);
+      res.json(response.rows); 
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
+  app.get('/lien_liste', async (req, res) => {
+    try {
+      const { ecole, classe } = req.query;
+      const response = await pool.query("SELECT * FROM lien_liste WHERE nom_ecole = $1 AND classe = $2", [ecole, classe]);
       res.json(response.rows); 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -246,7 +268,7 @@ app.get('/all_fourniture_classe', async (req, res) => {
         const response = await pool.query("SELECT distinct categorie_1, categorie_2 FROM fourniture_2");
         res.json(response.rows);}
     catch{
-        console.log("erreur");}});
+        console.log("erreur_fournitures_category");}});
 
   app.get('/fournitures_by_category', async (req, res) => {
           try {
@@ -264,7 +286,7 @@ app.get('/all_fourniture_classe', async (req, res) => {
               const response = await pool.query("SELECT distinct niveau,category_1, category_2 FROM livres");
               res.json(response.rows);}
           catch{
-              console.log("erreur");}});
+              console.log("erreur_livre_category");}});
   
 
               app.get('/livre_data', async (req, res) => {
@@ -278,6 +300,49 @@ app.get('/all_fourniture_classe', async (req, res) => {
                   res.status(500).json({ error: 'Internal Server Error' });
                 }
               });
+
+    app.get('/produit_fournitures', async (req, res) => {
+                try {
+                    const query = `
+                        SELECT 
+                            id,
+                            name_to_display,
+                            name, 
+                            brand,
+                            price,
+                            available_colors,
+                            product_picture, 
+                            source,
+                            category,
+                            subcategory,
+                            description 
+                        FROM 
+                        produits_fournitures;
+                    `;
+                    const response = await pool.query(query); 
+                    res.json(response.rows);
+                } catch (error) {
+                    console.error("Error:", error);
+                    res.status(500).json({ error: 'Internal Server Error' });
+                }
+            });
+
+
+    app.get('/produit_manuelles', async (req, res) => {
+      try {
+          const query = `
+              SELECT 
+                 *
+              FROM 
+              produits_manuelles;
+          `;
+          const response = await pool.query(query); 
+          res.json(response.rows);
+      } catch (error) {
+          console.error("Error:", error);
+          res.status(500).json({ error: 'Internal Server Error' });
+      }
+  });
   
 
 app.listen(4000, () =>{ 
