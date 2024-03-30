@@ -16,7 +16,6 @@ export default function IndexPage() {
   const [parsedFourniture, setParsedFourniture] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
   const navigate = useNavigate(); // Add this line to get the navigate function
-  const [fournitureList, setFournitureList] = useState([]); // Initialize fournitureList with your initial data
 
 
 
@@ -215,15 +214,30 @@ export default function IndexPage() {
   const isMobile = window.innerWidth <= 500; // Adjust the threshold as needed
 
 
-  // Function to handle "produit moins cher" button click
   const handleSimilarItemleft = (item) => {
-    // Find the index of the parent item in fournitureList
-    console.log("handleSimilarItemleft",item)  
+    const currentIndex = parsedFourniture[0].fourniture_list.findIndex(furniture => furniture.parsedItem.id === item.id);
+    const previousIndex = (currentIndex - 1 + item.similarItems.length) % item.similarItems.length;
+    const previousItem = item.similarItems[previousIndex];
+    // Update the displayed item or perform any other action
+    if (previousItem) {
+        // Update fournitureList with the previousItem
+        const updatedList = [...parsedFourniture[0].fourniture_list];
+        updatedList[currentIndex] = previousItem;
+        console.log("updatedList:", updatedList);
+        console.log("parsedFourniture:", parsedFourniture);
+
+    }
 };
 
+
 const handleSimilarItemright = (item) => {
-  // Find the index of the parent item in fournitureList
-  console.log("handleSimilarItemright",item)
+    const currentIndex = listefourniture.findIndex(furniture => furniture.id === item.id);
+    const nextIndex = (currentIndex + 1) % item.similarItems.length;
+    const nextItem = item.similarItems[nextIndex];
+    console.log("Next Item:", nextItem);
+    // Update the displayed item or perform any other action
+};
+
   
 
 
@@ -313,7 +327,9 @@ const handleSimilarItemright = (item) => {
 
          
         <div className='bg-pink-50 border rounded-2xl p-4 mb-5'>
-        <div className='p-2 mb-4'>Nous choisissons les produits de qualités les moins chers</div>
+        <div className='p-2 mb-1'>Nous choisissons les produits de qualités les moins chers</div>
+        <div className=' mb-4'>Paiement en 3x ou 4x</div>
+
       
       {lien_liste &&
         <Link className='border bg-white rounded-2xl p-3' to={lien_liste[0].lien_fourniture} target="_blank" >
@@ -369,12 +385,12 @@ const handleSimilarItemright = (item) => {
                                   ( <div className='flex mb-2 mt-2'>
                                 <button className=' text-pink-500 p-1 border border-gray-300  rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemleft(parsedItem)} >
                                    <svg width="" height="1/2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                     </svg>
                                    </button>                                                             
                                 
                                 <button className=' ml-2 text-green-400 p-1 border rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemright(parsedItem)} > 
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(180)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(180)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                                 </button>                                                                                           
 
                                 <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs'> Voir tout les produits</button> 
