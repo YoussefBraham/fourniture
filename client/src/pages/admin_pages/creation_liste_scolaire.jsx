@@ -116,7 +116,6 @@ export default function CreationListeScolaire() {
     setDirectingToSimilarProduct(false);
 };
 
-
   const handleRemoveItem = (index) => {
     setSelectedItems(prevItems => prevItems.filter((_, i) => i !== index));
   };
@@ -166,22 +165,47 @@ useEffect(() => {
     })
     .then((response) => {
       setloadedliste(response.data)
-      console.log("response.data[0].fourniture_list",response.data[0].fourniture_list)
-      const fournitureList = JSON.parse(response.data[0].fourniture_list);
-      console.log('fournitureList',fournitureList)
-      setSelectedItems(fournitureList2);
             // Handle the fetched data
     })
     .catch((error) => {
       console.error('Error fetching data:', error);
     });
   }
-}, [selectedMatiere]);
+}, [selectedEcole,selectedMatiere]);
+
+useEffect(() => {
+  if (loadedliste) {
+    const cleanedData = loadedliste.map((matiere) => {
+      if (matiere.fourniture_list !== undefined) {
+        const stringWithoutFirstTwo = matiere.fourniture_list.slice(2);
+        const stringWithoutLastTwo = stringWithoutFirstTwo.slice(0, -2);
+        const test = stringWithoutLastTwo.split('","');
+
+        const parsedItems = test.map((list) => JSON.parse(list.replace(/\\/g, '')));
+
+        return {
+          nom_ecole: matiere.nom_ecole,
+          nom_classe: matiere.nom_classe,
+          nom_matiere: matiere.nom_matiere,
+          fourniture_list: parsedItems,
+        };
+      }
+      return null; // or handle the case when fourniture_list is undefined
+    });
+    // Ensure cleanedData has at least one element before accessing its first element
+    if (cleanedData.length > 0) {
+      setSelectedItems(cleanedData[0].fourniture_list);
+    } else {
+      setSelectedItems([]);
+    }
+  } else {
+    setSelectedItems([]);
+  }
+}, [loadedliste]);
+
 
 
 console.log('loadedliste',loadedliste)
-console.log('selectedItems',selectedItems)
-
 
 return (
     <div className="flex flex-col items-center justify-center border rounded-2xl">
@@ -252,7 +276,7 @@ return (
     </tr>
   </thead>
   <tbody>
-    {selectedItems.map((item, index) => (
+    {selectedItems && selectedItems.map((item, index) => (
       <tr className="border-b" key={index}>
         <td className="border-r p-2">
           <img onClick={() => openModal(imageUrl)} src={item.id.charAt(0) === 'M' ? item.image : item.product_picture  } alt= {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display} style={{ maxWidth: '100px', maxHeight: '100px' }} />
@@ -324,10 +348,6 @@ return (
       ) : (
         <Manuelles_admin setManuelle_info={handleDataFromChild} />
       )}
-
-
-  
-
     </div>
   );
 }

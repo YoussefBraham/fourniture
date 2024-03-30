@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
@@ -88,21 +88,21 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
   };
 
    // Sorting function based on column and direction
-   const sortedmanuelles = [...manuelles].sort((a, b) => {
-    console.log("sortColumn",sortColumn)
-    if (sortColumn) {
-      // Convert price to numbers before comparison
-      const first = sortColumn === 'prix' ? parseFloat(a[sortColumn]) : a[sortColumn].toUpperCase();
-      const second = sortColumn === 'prix' ? parseFloat(b[sortColumn]) : b[sortColumn].toUpperCase();
-      const direction = sortDirection === 'asc' ? 1 : -1;
+   const sortedmanuelles = useMemo(() => {
+    return [...manuelles].sort((a, b) => {
       if (sortColumn === 'prix') {
+        const first = parseFloat(a[sortColumn]);
+        const second = parseFloat(b[sortColumn]);
+        const direction = sortDirection === 'asc' ? 1 : -1;
         return (first - second) * direction;
+      } else {
+        const first = a[sortColumn].toUpperCase();
+        const second = b[sortColumn].toUpperCase();
+        const direction = sortDirection === 'asc' ? 1 : -1;
+        return first.localeCompare(second) * direction;
       }
-      return first.localeCompare(second) * direction;
-    }
-    return 0;
-  });
-
+    });
+  }, [manuelles, sortColumn, sortDirection]);
 
   const handleAddToSelected = (product) => {
     setManuelle_info(product); // Use setManuelle_info function passed from props to update parent state

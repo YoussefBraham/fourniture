@@ -10,14 +10,14 @@ app.use(cors({
 }));
 
 app.use(express.json())  
- 
+  
 app.get('/ecoles', async (req, res) => {
 try {
     const response = await pool.query("SELECT * FROM ecoles");
     res.json(response.rows);}
 catch{
     console.log("erreur_ecole");}}); 
-
+ 
 app.get('/fournitures', async (req, res) => {
         try {
             const response = await pool.query("SELECT * FROM fournitures");
@@ -37,25 +37,43 @@ app.get('/fournitures_by_selection', async (req, res) => {
 });
 
 app.post('/creation_liste', async (req, res) => {
-    try {
-        const { ecole, classe, matiere, selectedItems } = req.body;
+  try {
+      const { ecole, classe, matiere, selectedItems } = req.body;
 
-        // Construct the SQL query
-        const query = `
-            INSERT INTO fourniture_classes (nom_ecole, nom_classe, nom_matiere, fourniture_list)
-            VALUES ($1, $2, $3, $4)  
-        `; 
- 
-        // Execute the query with the provided parameters
-        const response = await pool.query(query, [ecole, classe, matiere, selectedItems]);
+      // Check if the data already exists in the database
+      const existingDataQuery = `
+          SELECT * FROM fourniture_classes
+          WHERE nom_ecole = $1 AND nom_classe = $2 AND nom_matiere = $3
+      `;
+      const existingDataResponse = await pool.query(existingDataQuery, [ecole, classe, matiere]);
+      const existingData = existingDataResponse.rows[0];
 
+      if (existingData) {
+          // If data exists, update the existing record
+          const updateQuery = `
+              UPDATE fourniture_classes
+              SET fourniture_list = $1
+              WHERE nom_ecole = $2 AND nom_classe = $3 AND nom_matiere = $4
+          `;
+          await pool.query(updateQuery, [selectedItems, ecole, classe, matiere]);
 
-        res.status(200).json({ message: 'Data inserted successfully' });
-    } catch (error) {
-        console.error('Error inserting data:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+          res.status(200).json({ message: 'Data updated successfully' });
+      } else {
+          // If data doesn't exist, insert a new record
+          const insertQuery = `
+              INSERT INTO fourniture_classes (nom_ecole, nom_classe, nom_matiere, fourniture_list)
+              VALUES ($1, $2, $3, $4)
+          `;
+          await pool.query(insertQuery, [ecole, classe, matiere, selectedItems]);
+
+          res.status(200).json({ message: 'Data inserted successfully' });
+      }
+  } catch (error) {
+      console.error('Error inserting/updating data:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
+
 
 app.get('/all_fourniture_classe', async (req, res) => {
     try {
