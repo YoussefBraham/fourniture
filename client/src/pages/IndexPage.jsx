@@ -16,8 +16,7 @@ export default function IndexPage() {
   const [parsedFourniture, setParsedFourniture] = useState([]);
   const [totalSum, setTotalSum] = useState(0);
   const navigate = useNavigate(); // Add this line to get the navigate function
-
-
+  const [collapseStates, setCollapseStates] = useState({});
 
 
   useEffect(() => {
@@ -214,34 +213,124 @@ export default function IndexPage() {
   const isMobile = window.innerWidth <= 500; // Adjust the threshold as needed
 
 
-  const handleSimilarItemleft = (item) => {
-    const currentIndex = parsedFourniture[0].fourniture_list.findIndex(furniture => furniture.parsedItem.id === item.id);
-    const previousIndex = (currentIndex - 1 + item.similarItems.length) % item.similarItems.length;
-    const previousItem = item.similarItems[previousIndex];
+  const handleSimilarItemleft = (item, nom_matiere) => {
+    console.log('item',item)
+    const currentIndex = parsedFourniture.findIndex((parsedItem) => parsedItem.nom_matiere === nom_matiere);
+    const furnitureList = parsedFourniture[currentIndex].fourniture_list;
+    const currentFurnitureIndex = furnitureList.findIndex((furniture) => furniture.parsedItem.id === item.id);
+    const currentIndex2 = furnitureList[currentFurnitureIndex]
+    const previousIndex = (currentIndex + 1 + item.similarItems.length) % item.similarItems.length;
+    console.log("currentIndex2.parsedItem.similarItems",currentIndex2.parsedItem.similarItems[previousIndex])
+    console.log("currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex)",currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex))
+
+
+    const previousItem = {
+        ...currentIndex2.parsedItem.similarItems[previousIndex],
+        similarItems: [
+            item,
+            ...currentIndex2.parsedItem.similarItems.filter((_, index) => index !== previousIndex)
+        ]
+    };
+    console.log('previousItem',previousItem)
+
     // Update the displayed item or perform any other action
     if (previousItem) {
         // Update fournitureList with the previousItem
-        const updatedList = [...parsedFourniture[0].fourniture_list];
-        updatedList[currentIndex] = previousItem;
-        console.log("updatedList:", updatedList);
-        console.log("parsedFourniture:", parsedFourniture);
+        const updatedList = furnitureList.map((furniture, index) => {
+            if (index === currentFurnitureIndex) {
+                return { parsedItem: previousItem };
+            }
+            return furniture;
+        });
 
+        setParsedFourniture((prevParsedFourniture) => {
+            return prevParsedFourniture.map((parsedItem, index) => {
+                if (index === currentIndex) {
+                    return { ...parsedItem, fourniture_list: updatedList };
+                }
+                return parsedItem;
+            });
+        });
     }
 };
 
 
-const handleSimilarItemright = (item) => {
-    const currentIndex = listefourniture.findIndex(furniture => furniture.id === item.id);
-    const nextIndex = (currentIndex + 1) % item.similarItems.length;
-    const nextItem = item.similarItems[nextIndex];
-    console.log("Next Item:", nextItem);
-    // Update the displayed item or perform any other action
+
+const handleSimilarItemright = (item, nom_matiere) => {
+  console.log('item',item)
+  const currentIndex = parsedFourniture.findIndex((parsedItem) => parsedItem.nom_matiere === nom_matiere);
+  const furnitureList = parsedFourniture[currentIndex].fourniture_list;
+  const currentFurnitureIndex = furnitureList.findIndex((furniture) => furniture.parsedItem.id === item.id);
+  const currentIndex2 = furnitureList[currentFurnitureIndex]
+  const previousIndex = (currentIndex - 1 + item.similarItems.length) % item.similarItems.length;
+  console.log("currentIndex2.parsedItem.similarItems",currentIndex2.parsedItem.similarItems[previousIndex])
+  console.log("currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex)",currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex))
+
+
+  const previousItem = {
+      ...currentIndex2.parsedItem.similarItems[previousIndex],
+      similarItems: [
+          item,
+          ...currentIndex2.parsedItem.similarItems.filter((_, index) => index !== previousIndex)
+      ]
+  };
+  console.log('previousItem',previousItem)
+
+  // Update the displayed item or perform any other action
+  if (previousItem) {
+      // Update fournitureList with the previousItem
+      const updatedList = furnitureList.map((furniture, index) => {
+          if (index === currentFurnitureIndex) {
+              return { parsedItem: previousItem };
+          }
+          return furniture;
+      });
+
+      setParsedFourniture((prevParsedFourniture) => {
+          return prevParsedFourniture.map((parsedItem, index) => {
+              if (index === currentIndex) {
+                  return { ...parsedItem, fourniture_list: updatedList };
+              }
+              return parsedItem;
+          });
+      });
+  }
 };
 
-  
+const toggleCollapse = (index) => {
+  setCollapseStates((prev) => ({
+    ...prev,
+    [index]: !prev[index],
+  }));
+  console.log(collapseStates[index])
+
+};
 
 
-  
+
+const fetchProducts = async (category, subcategory) => {
+  console.log('category',category)
+  console.log('subcategory',subcategory)
+  {/*try {
+    // Make an axios GET request to your backend API
+    const response = await axios.get('/get_all_products_category', {
+      params: {
+        category,
+        subcategory,
+      },
+    });
+
+    // Handle the response data (e.g., set state with the fetched products)
+    console.log('Fetched products:', response.data);
+    // Update state or perform any other action with the fetched products
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    // Handle errors if any
+  }*/}
+};
+
+
+
   return (
     <div className="flex flex-col items-center justify-center w-auto">
 
@@ -331,22 +420,34 @@ const handleSimilarItemright = (item) => {
         <div className=' mb-4'>Paiement en 3x ou 4x</div>
 
       
-      {lien_liste &&
+      {lien_liste && lien_liste[0].lien_fourniture  &&
         <Link className='border bg-white rounded-2xl p-3' to={lien_liste[0].lien_fourniture} target="_blank" >
         Visualisez la liste
           </Link>}
         
         </div>
 
-        <div className={`flex flex-col bg-blue-50 items-center justify-center border rounded-2xl  ${isMobile ? 'w-screen' : 'w-1/2'}` }>
+        <div className={`flex flex-col bg-blue-50  border rounded-2xl  ${isMobile ? 'w-screen' : 'w-1/2'}` }>
                 <>
                   {parsedFourniture.map(({ nom_matiere, fourniture_list }, index) => (
                     <div key={index} className='w-full'>
                       <div className="border rounded-2xl p-2 m-3 bg-white">
                         <div className="flex flex-col w-full justify-center items-center">
-                          <div className="mb-2 text-center font-bold text-xl">{nom_matiere}</div>
-                          <div className='grid grid-cols-3 gap-4'>
-                          {fourniture_list.map(({ parsedItem }, i) => (                            
+                        <div className='flex w-full '>
+  <div className="mb-2 items-center font-bold text-xl text-center w-full">{nom_matiere}</div>
+  <div className="ml-auto">
+    <button className='' onClick={() => toggleCollapse(index)}>
+    <svg  transform="rotate(180)" width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M18.2929 15.2893C18.6834 14.8988 18.6834 14.2656 18.2929 13.8751L13.4007 8.98766C12.6195 8.20726 11.3537 8.20757 10.5729 8.98835L5.68257 13.8787C5.29205 14.2692 5.29205 14.9024 5.68257 15.2929C6.0731 15.6835 6.70626 15.6835 7.09679 15.2929L11.2824 11.1073C11.673 10.7168 12.3061 10.7168 12.6966 11.1073L16.8787 15.2893C17.2692 15.6798 17.9024 15.6798 18.2929 15.2893Z" fill="#0F0F0F"/>
+</svg>
+    </button>
+  </div>
+</div>
+
+                          <div className={`grid grid-cols-3 gap-4 text-center`}>
+                          {!collapseStates[index] && (    
+                            <>                    
+                          {fourniture_list.map(({ parsedItem }, i) => (                                                        
                             <div key={i} className="border rounded-lg p-4 h-full">
                               {/* bouton supprimer*/}
                               <div className=' w-full flex justify-end'>
@@ -359,52 +460,65 @@ const handleSimilarItemright = (item) => {
 <path d="M15.2464 11.0746C15.2876 10.6625 14.9869 10.2949 14.5747 10.2537C14.1626 10.2125 13.795 10.5132 13.7538 10.9254L13.2538 15.9254C13.2126 16.3375 13.5133 16.7051 13.9255 16.7463C14.3376 16.7875 14.7051 16.4868 14.7464 16.0746L15.2464 11.0746Z" fill="#1C274C"/>
                                 </svg>
                                 </button> 
-                                </div>
-                              <div className='flex items-center flex-col  rounded-2xl h-full'>
-
+                                </div>                              
+                              <div className='flex items-center flex-col rounded-2xl h-full p-3'>
                               
                               {/* image */}
                               <div className=''>
-                                <img className=" w-32 h-32 mb-3 p-3" src={parsedItem.id.charAt(0) === 'M' ? parsedItem.image : parsedItem.product_picture  } alt= {parsedItem.id.charAt(0) === 'M' ? parsedItem.nom : parsedItem.name_to_display}  /></div>
+                                <img className={`${parsedItem.id.charAt(0) === 'M' ? ' w-30 h-36 mb-3 p-2' : 'w-32 h-32 mb-3 p-2'}`} src={parsedItem.id.charAt(0) === 'M' ? parsedItem.image : parsedItem.product_picture  } alt= {parsedItem.id.charAt(0) === 'M' ? parsedItem.nom : parsedItem.name_to_display}  /></div>
                               
                               {/* nom category etc*/}
-                              <div className='flex flex-col  h-2/5 justify-start'>
+                              <div className='flex flex-col h-4/5 justify-evenly w-full'>
 
-                              <h2 className="text-center text-xl mb-3 h-1/3">                                
+                              <h2 className={`text-center text-xl mb-2 line-clamp-2 ${parsedItem.id.charAt(0) === 'M' ? '2/3' : '1/3'} `}>                                
+
                                 {parsedItem.id.charAt(0) === 'M' ? parsedItem.nom : parsedItem.category  }
                                 </h2>
 
-                              <h2 className="text-center text-xs ml-1 h-1/3 ">
+                                <h2 className={`text-center text-xs line-clamp-3  ${parsedItem.id.charAt(0) === 'M' ? '' : ''}`}>
                                 {parsedItem.id.charAt(0) === 'M' ? (<>ISBN: {parsedItem.isbn_numeric}</>) : parsedItem.name  }
-
                                 </h2>
-
-                        
                                 
-                                  { parsedItem.id.charAt(0) === 'M' ? (<></>) :
-                                  ( <div className='flex mb-2 mt-2'>
-                                <button className=' text-pink-500 p-1 border border-gray-300  rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemleft(parsedItem)} >
-                                   <svg width="" height="1/2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                   </button>                                                             
-                                
-                                <button className=' ml-2 text-green-400 p-1 border rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemright(parsedItem)} > 
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(180)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
-                                </button>                                                                                           
+                                {parsedItem.id.charAt(0) === 'M' ? (
+  <></>
+) : (
+  <div className='flex mb-2 mt-2'>
+    {parsedItem.similarItems && parsedItem.similarItems.length >0 ? (
+      <>
+        <button className='text-pink-500 p-1 border border-gray-300 rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemleft(parsedItem, nom_matiere)}>
+          <svg width="" height="1/2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>                                                             
+        <button className='ml-2 text-green-400 p-1 border rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemright(parsedItem, nom_matiere)}>
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(180)">
+            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+              <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+            </g>
+          </svg>
+        </button>
+      </>
+    ) : (
+      <div></div>
+    )}
+    <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs w-full' onClick={() => fetchProducts(parsedItem.category, parsedItem.subcategory)}>
+      Voir tout les produits
+    </button> 
+  </div>
+)}
 
-                                <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs'> Voir tout les produits</button> 
-
-                                </div>)}
                                 
                                 </div>
 
                               {/* prix qtt supprimer*/}
+                              <>
                                 { parsedItem.quantity ? (
 
-                                <div className=' flex justify-center items-center border rounded-2xl p-2 h-1/5'>       
+                                <div className=' flex justify-center items-center border rounded-2xl p-2'>       
 
-                                  <div className='text-s flex items-center  justify-center w-1/2'> Qtt: 
+                                  <div className='text-xs flex items-center  justify-center w-1/2'> Qtt: 
                                         <input
                                           type="number"
                                           className='ml-2 w-3/5'
@@ -416,17 +530,17 @@ const handleSimilarItemright = (item) => {
                                 </div>  
 
                                 <div className=' flex'>
-                                <div className=' text-xl font-bold  mr-1'>{parsedItem.id.charAt(0) === 'M' ? parsedItem.prix * parsedItem.quantity : parsedItem.price *parsedItem.quantity} </div>
-                                <div className='mt-1 text-l font-bold'> Dnt</div>
+                                <div className=' text-xl font-bold  mr-1'>{parsedItem.id.charAt(0) === 'M' ? (parsedItem.prix * parsedItem.quantity).toFixed(2) : (parsedItem.price *parsedItem.quantity).toFixed(2)} </div>
+                                <div className='mt-1 text-m font-bold'> Dnt</div>
                               </div>
 
   
                               </div>)
                               :
                               (
-                              <div className=' flex justify-center items-center border rounded-2xl p-2 h-1/5'>                                  
+                              <div className=' flex justify-center items-center border rounded-2xl p-2'>                                  
                                   
-                                  <div className='text-s flex items-center  justify-center w-1/2'>Qtt:
+                                  <div className='text-xs flex items-center  justify-center w-1/2 mr-5'>Qtt:
                                         <input
                                           type="number"
                                           className='ml-2 w-3/5'
@@ -439,16 +553,29 @@ const handleSimilarItemright = (item) => {
 
                               <div className=' flex'>
                               <div className=' text-xl font-bold  mr-1'>{parsedItem.id.charAt(0) === 'M' ? parsedItem.prix  : parsedItem.price} </div>
-                                <div className='mt-1 text-l font-bold'> Dnt</div>
+                                <div className='mt-1 text-m font-bold'> Dnt</div>
                               </div>
 
 
                                 </div>)
                               }
-
-                  </div>
+                              </>
+                                 
+                                
+                                </div>
+                                
                                   </div>
-                          ))}</div>
+
+                                  
+                          
+                          
+                          ))}
+                          <div class="w-full flex border border-blue-100 rounded-lg p-4 h-full items-center justify-center"><button class="border p-2 rounded-2xl">Ajouter un autre Article</button></div>
+                          </>                        )}
+
+                         
+
+                          </div>
                         </div>
                       </div>
                     </div>

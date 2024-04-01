@@ -361,6 +361,17 @@ app.get('/all_fourniture_classe', async (req, res) => {
           res.status(500).json({ error: 'Internal Server Error' });
       }
   });
+
+  app.get('/get_all_products_category', async (req, res) => {
+    try {
+      const { category } = req.query;
+      const response = await pool.query("SELECT * FROM fourniture_2 WHERE categorie_1 ilike $1", [`%${category}%`]);
+      res.json(response.rows);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
   
 
 app.listen(4000, () =>{ 
