@@ -365,7 +365,7 @@ app.get('/all_fourniture_classe', async (req, res) => {
   app.get('/get_all_products_category', async (req, res) => {
     try {
       const { category } = req.query;
-      const response = await pool.query("SELECT * FROM fourniture_2 WHERE categorie_1 ilike $1", [`%${category}%`]);
+      const response = await pool.query("SELECT * FROM produits_fournitures WHERE category ilike $1", [`%${category}%`]);
       res.json(response.rows);
     } catch (error) {
       console.error('Error fetching data:', error);

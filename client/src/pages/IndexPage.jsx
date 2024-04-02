@@ -17,6 +17,14 @@ export default function IndexPage() {
   const [totalSum, setTotalSum] = useState(0);
   const navigate = useNavigate(); // Add this line to get the navigate function
   const [collapseStates, setCollapseStates] = useState({});
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
+  const [fetchedProducts, setFetchedProducts] = useState([]);
+  const [showProductList, setShowProductList] = useState(false);
+  const [selectedcategory, setSelectedcategory] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+
+
 
 
   useEffect(() => {
@@ -210,7 +218,7 @@ export default function IndexPage() {
     return uId;
   };
   
-  const isMobile = window.innerWidth <= 500; // Adjust the threshold as needed
+  const isMobile = window.innerWidth <= 600; // Adjust the threshold as needed
 
 
   const handleSimilarItemleft = (item, nom_matiere) => {
@@ -253,7 +261,6 @@ export default function IndexPage() {
         });
     }
 };
-
 
 
 const handleSimilarItemright = (item, nom_matiere) => {
@@ -306,29 +313,77 @@ const toggleCollapse = (index) => {
 
 };
 
+const fetchProducts = async (category, subcategory,index) => {
+  setSelectedItemIndex(index);
 
-
-const fetchProducts = async (category, subcategory) => {
   console.log('category',category)
   console.log('subcategory',subcategory)
-  {/*try {
+  try {
     // Make an axios GET request to your backend API
     const response = await axios.get('/get_all_products_category', {
       params: {
         category,
-        subcategory,
       },
     });
 
     // Handle the response data (e.g., set state with the fetched products)
     console.log('Fetched products:', response.data);
+    setFetchedProducts(response.data);
+    setShowProductList(true); // Show the product list div
+    setSelectedcategory(category)
+
     // Update state or perform any other action with the fetched products
   } catch (error) {
     console.error('Error fetching products:', error);
     // Handle errors if any
-  }*/}
+  }
+
 };
 
+const handleCloseProductList = () => {
+  setShowProductList(false); // Hide the product list div
+  setFetchedProducts([]); // Clear the fetched products
+};
+
+const handleDeleteItem = (item) => {
+  // Filter out the item to be deleted from the parsedFourniture list
+  const updatedParsedFourniture = parsedFourniture.map(parsedItem => {
+    // Filter out the item based on its ID
+    const filteredItems = parsedItem.fourniture_list.filter(furniture => furniture.parsedItem.id !== item.id);
+    // Return the parsedItem object with updated fourniture_list
+    return {
+      ...parsedItem,
+      fourniture_list: filteredItems
+    };
+  });
+
+  // Update the state with the updated parsedFourniture list
+  setParsedFourniture(updatedParsedFourniture);
+}
+
+const handleReplaceProduct = (nom_matiere) => {
+  if (!selectedProduct) return; // Guard clause if no product is selected
+
+  setParsedFourniture((currentFourniture) => 
+    currentFourniture.map((matiere) => {
+      if (matiere.nom_matiere === nom_matiere) {
+        return {
+          ...matiere,
+          fourniture_list: matiere.fourniture_list.map((fourniture) => {
+            if (fourniture.parsedItem.id === selectedItemIndex) { // Assuming selectedItemIndex is the ID of the item to replace
+              return {
+                ...fourniture,
+                parsedItem: { ...fourniture.parsedItem, ...selectedProduct } // Replace the details
+              };
+            }
+            return fourniture;
+          })
+        };
+      }
+      return matiere;
+    })
+  );
+};
 
 
   return (
@@ -403,6 +458,52 @@ const fetchProducts = async (category, subcategory) => {
         
         {/* display list*/}
 
+        {showProductList && (
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 border border-black rounded-lg w-3/4 max-h-80 overflow-y-auto z-50">
+          {/* Close button */}
+          <button
+            onClick={handleCloseProductList}
+            className="absolute top-0 right-0 text-red-500 px-2 py-1"
+          >
+            X
+          </button>
+          {/* Product List */}
+          <>{selectedcategory}</>
+              <ul>
+              <table className="border-collapse border m-2 rounded-2xl">
+      <thead>
+        <tr className="bg-gray-200">
+        <th className="border p-2 w-1/3 items-center justify-center flex">image</th>
+          <th className="border p-2">Nom</th>
+        </tr>
+      </thead>
+      <tbody>
+        {fetchedProducts.map((product) => (
+          <tr key={product.id} className="border">
+            <td className="border p-2">
+              <img className="w-32 h-32 mb-3 p-2" src={product.product_picture} alt={product.name_to_display} />
+              </td>
+              <td className="border p-2 flex-col justify-around">
+              <div className="text-left line-clamp-2 mb-4">{product.name}</div>
+              <div className='flex justify-between'>
+              <div>{product.price}</div>
+              <button 
+              className="font-bold border p-2"
+              onClick={() => handleReplaceProduct(parsedItem.category, parsedItem.subcategory, index)}
+
+              >Choisir cet article</button>
+              </div>
+            </td>
+ 
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+              </ul>
+        </div>
+      )}
+
           {selectedEcole && selectedClasse && (
             
             <div className='flex flex-col items-center w-screen'>
@@ -416,8 +517,10 @@ const fetchProducts = async (category, subcategory) => {
 
          
         <div className='bg-pink-50 border rounded-2xl p-4 mb-5'>
-        <div className='p-2 mb-1'>Nous choisissons les produits de qualités les moins chers</div>
+        <div className='p-2 mb-1'>Les produits de qualités les moins chers</div>
         <div className=' mb-4'>Paiement en 3x ou 4x</div>
+        <div className=' mb-4'>Nous rachetons vos livres</div>
+
 
       
       {lien_liste && lien_liste[0].lien_fourniture  &&
@@ -427,7 +530,7 @@ const fetchProducts = async (category, subcategory) => {
         
         </div>
 
-        <div className={`flex flex-col bg-blue-50  border rounded-2xl  ${isMobile ? 'w-screen' : 'w-1/2'}` }>
+        <div className={`flex flex-col bg-blue-50  border rounded-2xl  ${isMobile ? 'w-full' : 'w-1/2'}` }>
                 <>
                   {parsedFourniture.map(({ nom_matiere, fourniture_list }, index) => (
                     <div key={index} className='w-full'>
@@ -436,22 +539,26 @@ const fetchProducts = async (category, subcategory) => {
                         <div className='flex w-full '>
   <div className="mb-2 items-center font-bold text-xl text-center w-full">{nom_matiere}</div>
   <div className="ml-auto">
-    <button className='' onClick={() => toggleCollapse(index)}>
-    <svg  transform="rotate(180)" width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <button 
+      className={`border rounded-3xl ${collapseStates[0] ? 'rotate-180' : ''}`} 
+
+    onClick={() => toggleCollapse(index)}>
+    <svg  width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M18.2929 15.2893C18.6834 14.8988 18.6834 14.2656 18.2929 13.8751L13.4007 8.98766C12.6195 8.20726 11.3537 8.20757 10.5729 8.98835L5.68257 13.8787C5.29205 14.2692 5.29205 14.9024 5.68257 15.2929C6.0731 15.6835 6.70626 15.6835 7.09679 15.2929L11.2824 11.1073C11.673 10.7168 12.3061 10.7168 12.6966 11.1073L16.8787 15.2893C17.2692 15.6798 17.9024 15.6798 18.2929 15.2893Z" fill="#0F0F0F"/>
 </svg>
     </button>
   </div>
 </div>
 
-                          <div className={`grid grid-cols-3 gap-4 text-center`}>
+                          <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}  gap-4 text-center`}>
                           {!collapseStates[index] && (    
                             <>                    
                           {fourniture_list.map(({ parsedItem }, i) => (                                                        
-                            <div key={i} className="border rounded-lg p-4 h-full">
+                            <div key={i} className="border rounded-lg p-4 ">
                               {/* bouton supprimer*/}
                               <div className=' w-full flex justify-end'>
-                              <button className="" >
+                              <button className="" onClick={() => handleDeleteItem(parsedItem, nom_matiere)} >
+                              
                               <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M12 2.75C11.0215 2.75 10.1871 3.37503 9.87787 4.24993C9.73983 4.64047 9.31134 4.84517 8.9208 4.70713C8.53026 4.56909 8.32557 4.1406 8.46361 3.75007C8.97804 2.29459 10.3661 1.25 12 1.25C13.634 1.25 15.022 2.29459 15.5365 3.75007C15.6745 4.1406 15.4698 4.56909 15.0793 4.70713C14.6887 4.84517 14.2602 4.64047 14.1222 4.24993C13.813 3.37503 12.9785 2.75 12 2.75Z" fill="#1C274C"/>
 <path d="M2.75 6C2.75 5.58579 3.08579 5.25 3.5 5.25H20.5001C20.9143 5.25 21.2501 5.58579 21.2501 6C21.2501 6.41421 20.9143 6.75 20.5001 6.75H3.5C3.08579 6.75 2.75 6.41421 2.75 6Z" fill="#1C274C"/>
@@ -482,29 +589,25 @@ const fetchProducts = async (category, subcategory) => {
                                 {parsedItem.id.charAt(0) === 'M' ? (
   <></>
 ) : (
-  <div className='flex mb-2 mt-2'>
+  <div className={`flex mb-2 mt-2 ${isMobile ? 'flex-col justify-center items-center ' : ''}`}>
     {parsedItem.similarItems && parsedItem.similarItems.length >0 ? (
-      <>
-        <button className='text-pink-500 p-1 border border-gray-300 rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemleft(parsedItem, nom_matiere)}>
-          <svg width="" height="1/2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div className={` flex justify-center items-center  ${isMobile ? 'mb-4 w-1/2' : ''}`}>
+        <button className='p-1 border border-gray-300 rounded-2xl text-xs' onClick={() => handleSimilarItemleft(parsedItem, nom_matiere)}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>                                                             
-        <button className='ml-2 text-green-400 p-1 border rounded-2xl w-1/4 text-xs' onClick={() => handleSimilarItemright(parsedItem, nom_matiere)}>
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="rotate(180)">
-            <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-            <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
-            <g id="SVGRepo_iconCarrier">
-              <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-            </g>
+        <button className='ml-2 p-1 border rounded-2xl  text-xs transform rotate-180' onClick={() => handleSimilarItemright(parsedItem, nom_matiere)}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 12H19M5 12L11 6M5 12L11 18" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-      </>
+      </div>
     ) : (
       <div></div>
     )}
-    <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs w-full' onClick={() => fetchProducts(parsedItem.category, parsedItem.subcategory)}>
-      Voir tout les produits
+    <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs w-full' onClick={() => fetchProducts(parsedItem.category, parsedItem.subcategory, index)}>
+      Tout les produits
     </button> 
   </div>
 )}
@@ -516,8 +619,7 @@ const fetchProducts = async (category, subcategory) => {
                               <>
                                 { parsedItem.quantity ? (
 
-                                <div className=' flex justify-center items-center border rounded-2xl p-2'>       
-
+                                <div className={`flex justify-center items-center border rounded-2xl p-2 ${isMobile ? 'flex-col' : ''}`}>       
                                   <div className='text-xs flex items-center  justify-center w-1/2'> Qtt: 
                                         <input
                                           type="number"
@@ -538,7 +640,7 @@ const fetchProducts = async (category, subcategory) => {
                               </div>)
                               :
                               (
-                              <div className=' flex justify-center items-center border rounded-2xl p-2'>                                  
+                                <div className={`flex justify-center items-center border rounded-2xl p-2 ${isMobile ? 'flex-col' : ''}`}>       
                                   
                                   <div className='text-xs flex items-center  justify-center w-1/2 mr-5'>Qtt:
                                         <input
@@ -564,14 +666,10 @@ const fetchProducts = async (category, subcategory) => {
                                 
                                 </div>
                                 
-                                  </div>
-
-                                  
-                          
-                          
-                          ))}
-                          <div class="w-full flex border border-blue-100 rounded-lg p-4 h-full items-center justify-center"><button class="border p-2 rounded-2xl">Ajouter un autre Article</button></div>
-                          </>                        )}
+                            </div>                                                                              
+                          ))}                          
+                          <div className="w-full flex border border-blue-100 rounded-lg p-4 items-center justify-center"><button className="border p-2 rounded-2xl">Ajouter un autre Article</button></div>
+                          </>  )}
 
                          
 
