@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth } from '/Users/youssefbraham/Desktop/Ri/client/firebase.js';
+import { auth } from '../../firebase.js';
 import { useNavigate } from 'react-router-dom';
 import PlacesAutocomplete, {
   geocodeByAddress,

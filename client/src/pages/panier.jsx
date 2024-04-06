@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { auth, googleAuthProvider } from '/Users/youssefbraham/Desktop/Ri/client/firebase.js';
+import { auth, googleAuthProvider } from '../../firebase.js';
 import { signInWithPopup } from 'firebase/auth';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';

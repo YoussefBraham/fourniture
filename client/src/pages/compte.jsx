@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { auth } from '/Users/youssefbraham/Desktop/Ri/client/firebase.js';
+import { auth } from '../../firebase.js';
 import axios from 'axios';
 
 const AccountPage = () => {

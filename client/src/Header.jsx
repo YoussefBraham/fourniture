@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { auth } from '/Users/youssefbraham/Desktop/Ri/client/firebase.js';
+import { auth } from '../firebase.js';
 
 export default function Header() {
   const [user, setUser] = useState(null);
