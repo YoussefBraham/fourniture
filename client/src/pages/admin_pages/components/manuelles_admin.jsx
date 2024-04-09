@@ -108,6 +108,7 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
     setManuelle_info(product); // Use setManuelle_info function passed from props to update parent state
   };
 
+  console.log('manuelles',manuelles)
 
   return (
     <div className='flex flex-col w-full m-5 items-center'>
@@ -188,7 +189,6 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                 .filter((manuelle) => !selectedCategory || manuelle.ecole === selectedCategory)
                 .filter((manuelle) => !selectedSubcategory || manuelle.classe === selectedSubcategory || selectedSubcategory === 'all')
                 .filter((manuelle) => manuelle.nom.toLowerCase().includes(filterText.toLowerCase())) // Filter by product name
-
                 .map((manuelle) => (
 
                   <tr className='border'  key={manuelle.id}>
@@ -199,7 +199,7 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                     <div>{manuelle.classe}</div>
                     </div>
 
-                    <div>{manuelle.nom}</div>
+                    <div>{manuelle.name_to_display}</div>
                     </td>
                     <td className='text-left'>{manuelle.prix}</td>
                     <td  className='text-left pl-5'> <button onClick={() => handleAddToSelected(manuelle)}>Add to List</button> {/* Button to add product to selected list */}</td>

@@ -74,13 +74,36 @@ export default function CreationListeScolaire() {
     setSelectedMatiere(event.target.value);
   };
 
+  function removeCircularReferences(obj) {
+    const seenObjects = new WeakSet();
+    function detect(obj) {
+      if (obj && typeof obj === 'object') {
+        if (seenObjects.has(obj)) {
+          return true; // Circular reference detected
+        }
+        seenObjects.add(obj);
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key) && detect(obj[key])) {
+            delete obj[key]; // Remove circular reference
+            // Or handle it in another way, e.g., replace it with a string indicating a circular reference was removed
+          }
+        }
+      }
+      return false;
+    }
+  
+    detect(obj);
+    return obj;
+  }
+
   const handleSendToBackend = () => {
     // Prepare data to be sent to the backend
     const requestData = {
       ecole: selectedEcole,
       classe: selectedClasse,
       matiere: selectedMatiere,
-      selectedItems: selectedItems
+      selectedItems: removeCircularReferences([...selectedItems])
+
     };
 
     // Make an HTTP request to send the data to your backend
@@ -89,9 +112,11 @@ export default function CreationListeScolaire() {
       .then((response) => {
         console.log('Data sent to backend successfully:', response.data);
         // Optionally, you can handle success (e.g., show a success message)
+        alert('Data sent to backend successfully')
       })
       .catch((error) => {
         console.error('Error sending data to backend:', error);
+        alert(error)
         // Optionally, you can handle errors (e.g., show an error message)
       });
   };
@@ -276,54 +301,55 @@ return (
     </tr>
   </thead>
   <tbody>
-    {selectedItems && selectedItems.map((item, index) => (
-      <tr className="border-b" key={index}>
-        <td className="border-r p-2">
-          <img onClick={() => openModal(imageUrl)} src={item.id.charAt(0) === 'M' ? item.image : item.product_picture  } alt= {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display} style={{ maxWidth: '100px', maxHeight: '100px' }} />
-          {showModal && (
-        <Modal onClose={closeModal} imageUrl={selectedImageUrl} />
-      )}
-        </td>
-        <td className="border-r p-2">
-          <div className="flex flex-col">
-            <div className="text-left">  {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display}</div>
-            {item.available_colors ? (<div className="text-left">Available colors: {item.available_colors}</div>):(<></>)}
-          </div>
-        </td>
-        <td className="border-r p-2 text-left">
-{/* Input field for quantity */}
-<input className=''
-        type="number"
-        min="1" // Set min attribute to ensure quantity is greater than or equal to 1
-        value={item.quantity || 1} // Set default value to 1
-        onChange={(event) => handleQuantityChange(index, event)}
-      />
-
-        </td>
-        <td className="border-r p-2 text-left flex flex-col">
-          <div>Price per unit: {item.price}</div>
-          <div>Total price : {item.price * (item.quantity || 0)}</div>
-          </td>
-        <td className="p-2 border-r">
-          <div className="flex flex-col items-center">
-            <button className="border rounded p-1 m-1" onClick={() => handleRemoveItem(index)}>Remove</button>
-            <button className={`border rounded p-1 m-1 ${directingToSimilarProduct ? 'bg-blue-500' : ''}`} onClick={() => AddSimilarProduct(index)}>Add a Similar Product</button>
-          </div>
-        </td>
-        <td className="border-r p-2 text-left">            
+  {selectedItems && selectedItems.map((item, index) => {
+  if (!item || !item.id) return null; // This line ensures that item and item.id are not null or undefined
+  return (
+    <tr className="border-b" key={index}>
+      <td className="border-r p-2">
+        <img  src={item.id.charAt(0) === 'M' ? item.image : item.product_picture} alt={item.id.charAt(0) === 'M' ? item.nom : item.name_to_display} style={{ maxWidth: '100px', maxHeight: '100px' }} />        
+      </td>
+      <td className="border-r p-2">
+        <div className="flex flex-col">
+          <div className="text-left">{item.id.charAt(0) === 'M' ? item.nom : item.name_to_display}</div>
+          {item.available_colors ? (<div className="text-left">Available colors: {item.available_colors}</div>) : (<></>)}
+        </div>
+      </td>
+      <td className="border-r p-2 text-left">
+        <input className=''
+          type="number"
+          min="1" // Set min attribute to ensure quantity is greater than or equal to 1
+          value={item.quantity || 1} // Set default value to 1
+          onChange={(event) => handleQuantityChange(index, event)}
+        />
+      </td>
+      <td className="border-r p-2 text-left flex flex-col">
+        <div>Price per unit: {item.price}</div>
+        <div>Total price: {item.price * (item.quantity || 1)}</div>
+      </td>
+      <td className="p-2 border-r">
+        <div className="flex flex-col items-center">
+          <button className="border rounded p-1 m-1" onClick={() => handleRemoveItem(index)}>Remove</button>
+          <button className={`border rounded p-1 m-1 ${directingToSimilarProduct ? 'bg-blue-500' : ''}`} onClick={() => AddSimilarProduct(index)}>Add a Similar Product</button>
+        </div>
+      </td>
+      <td className="border-r p-2 text-left">
         {item.similarItems ? (
-              <div>
-                <p className="text-left">Similar Items:</p>
-                {item.similarItems.map((similarItem, similarIndex) => (
-                  <div className='flex' key={similarIndex}>
-                    <p className="text-left mr-4">{similarItem.id}</p>
-                    <p className="text-left">{similarItem.price} dt</p>
-                  </div>
-                ))}
+          <div>
+            <p className="text-left">Similar Items:</p>
+            {item.similarItems.map((similarItem, similarIndex) => (
+              <div className='flex' key={similarIndex}>
+                <p className="text-left mr-4">{similarItem.id}</p>
+                <p className="text-left">{similarItem.price} dt</p>
               </div>
-            ):(<></>)}</td>
-      </tr>
-    ))}
+            ))}
+          </div>
+        ) : (<></>)}
+      </td>
+    </tr>
+  );
+})}
+
+
   </tbody>
 </table>
     </ul>

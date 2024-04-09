@@ -2,7 +2,7 @@ const functions = require('firebase-functions');
 const express = require("express");
 const app = express();
 const cors = require("cors")
-const  pool = require('./db');
+const  pool = require('./db'); 
 
 app.use(cors({
   origin: ['https://founitures-6f03c.web.app','http://localhost:5173'],
@@ -157,7 +157,7 @@ app.get('/all_fourniture_classe', async (req, res) => {
   
       // Execute the query with the provided parameters
       await pool.query(query, [user_id, panier_id]);
-  
+   
       // Respond with a success message
       res.status(200).json({ message: 'Item removed from cart successfully!' });
     } catch (error) {
@@ -298,7 +298,7 @@ app.get('/all_fourniture_classe', async (req, res) => {
             res.status(500).json({ error: 'Internal Server Error' });
           }
         });
-
+ 
         app.get('/livre_category', async (req, res) => {
           try {
               const response = await pool.query("SELECT distinct niveau,category_1, category_2 FROM livres");

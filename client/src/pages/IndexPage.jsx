@@ -17,14 +17,13 @@ export default function IndexPage() {
   const [totalSum, setTotalSum] = useState(0);
   const navigate = useNavigate(); // Add this line to get the navigate function
   const [collapseStates, setCollapseStates] = useState({});
-  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
   const [fetchedProducts, setFetchedProducts] = useState([]);
   const [showProductList, setShowProductList] = useState(false);
   const [selectedcategory, setSelectedcategory] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
-
-
+  const [selectedmatiere, setSelectedmatiere] = useState(null);
+  const [selectedProductIndex, SetSelectedProductIndex] = useState(null);
+  const [showAjouterunArticle, setShowAjouterunArticle] = useState(false);
 
 
   useEffect(() => {
@@ -82,9 +81,16 @@ export default function IndexPage() {
         const stringWithoutLastTwo = stringWithoutFirstTwo.slice(0, -2);
         const test = stringWithoutLastTwo.split('","');
   
-        const parsedItems = test.map((list) => ({
-          parsedItem: JSON.parse(list.replace(/\\/g, '')),
-        }));
+        const parsedItems = test.map((list) => {
+          let parsedItem = JSON.parse(list.replace(/\\/g, ''));
+          // Ensure each parsedItem has a quantity, defaulting to 1 if not explicitly set
+          parsedItem = {
+            ...parsedItem,
+            quantity: parsedItem.quantity || 1,
+          };
+          return { parsedItem }; // Adjusted to wrap the updated parsedItem with an object
+        });
+
   
         return {
           nom_ecole: matiere.nom_ecole,
@@ -222,14 +228,11 @@ export default function IndexPage() {
 
 
   const handleSimilarItemleft = (item, nom_matiere) => {
-    console.log('item',item)
     const currentIndex = parsedFourniture.findIndex((parsedItem) => parsedItem.nom_matiere === nom_matiere);
     const furnitureList = parsedFourniture[currentIndex].fourniture_list;
     const currentFurnitureIndex = furnitureList.findIndex((furniture) => furniture.parsedItem.id === item.id);
     const currentIndex2 = furnitureList[currentFurnitureIndex]
     const previousIndex = (currentIndex + 1 + item.similarItems.length) % item.similarItems.length;
-    console.log("currentIndex2.parsedItem.similarItems",currentIndex2.parsedItem.similarItems[previousIndex])
-    console.log("currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex)",currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex))
 
 
     const previousItem = {
@@ -239,7 +242,6 @@ export default function IndexPage() {
             ...currentIndex2.parsedItem.similarItems.filter((_, index) => index !== previousIndex)
         ]
     };
-    console.log('previousItem',previousItem)
 
     // Update the displayed item or perform any other action
     if (previousItem) {
@@ -264,14 +266,11 @@ export default function IndexPage() {
 
 
 const handleSimilarItemright = (item, nom_matiere) => {
-  console.log('item',item)
   const currentIndex = parsedFourniture.findIndex((parsedItem) => parsedItem.nom_matiere === nom_matiere);
   const furnitureList = parsedFourniture[currentIndex].fourniture_list;
   const currentFurnitureIndex = furnitureList.findIndex((furniture) => furniture.parsedItem.id === item.id);
   const currentIndex2 = furnitureList[currentFurnitureIndex]
   const previousIndex = (currentIndex - 1 + item.similarItems.length) % item.similarItems.length;
-  console.log("currentIndex2.parsedItem.similarItems",currentIndex2.parsedItem.similarItems[previousIndex])
-  console.log("currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex)",currentIndex2.parsedItem.similarItems.filter((_, index) => index !== currentFurnitureIndex))
 
 
   const previousItem = {
@@ -281,7 +280,6 @@ const handleSimilarItemright = (item, nom_matiere) => {
           ...currentIndex2.parsedItem.similarItems.filter((_, index) => index !== previousIndex)
       ]
   };
-  console.log('previousItem',previousItem)
 
   // Update the displayed item or perform any other action
   if (previousItem) {
@@ -309,15 +307,10 @@ const toggleCollapse = (index) => {
     ...prev,
     [index]: !prev[index],
   }));
-  console.log(collapseStates[index])
-
 };
 
-const fetchProducts = async (category, subcategory,index) => {
-  setSelectedItemIndex(index);
+const fetchProducts = async (category, subcategory, index, parsed_product, nom_matiere) => {
 
-  console.log('category',category)
-  console.log('subcategory',subcategory)
   try {
     // Make an axios GET request to your backend API
     const response = await axios.get('/get_all_products_category', {
@@ -327,7 +320,6 @@ const fetchProducts = async (category, subcategory,index) => {
     });
 
     // Handle the response data (e.g., set state with the fetched products)
-    console.log('Fetched products:', response.data);
     setFetchedProducts(response.data);
     setShowProductList(true); // Show the product list div
     setSelectedcategory(category)
@@ -337,12 +329,18 @@ const fetchProducts = async (category, subcategory,index) => {
     console.error('Error fetching products:', error);
     // Handle errors if any
   }
-
+setSelectedProduct(parsed_product)
+setSelectedmatiere(nom_matiere)
+SetSelectedProductIndex(index)
 };
 
 const handleCloseProductList = () => {
   setShowProductList(false); // Hide the product list div
   setFetchedProducts([]); // Clear the fetched products
+};
+
+const handleCloseAjouterunArticle = () => {
+  setShowAjouterunArticle(false); // Hide the product list div
 };
 
 const handleDeleteItem = (item) => {
@@ -361,28 +359,48 @@ const handleDeleteItem = (item) => {
   setParsedFourniture(updatedParsedFourniture);
 }
 
-const handleReplaceProduct = (nom_matiere) => {
-  if (!selectedProduct) return; // Guard clause if no product is selected
+const handleReplaceProduct = (product) => {
+const indexmatiere = parsedFourniture.findIndex(matiere => matiere.nom_matiere === selectedmatiere)
+console.log(indexmatiere)
+const indexToReplace = parsedFourniture[indexmatiere].fourniture_list.findIndex(fournitureItem => fournitureItem.parsedItem.id === selectedProduct.id);
+parsedFourniture[indexmatiere].fourniture_list[indexToReplace].parsedItem = product;
+setShowProductList(false); // Hide the product list div
+setFetchedProducts([]); // Clear the fetched products
+};
 
-  setParsedFourniture((currentFourniture) => 
-    currentFourniture.map((matiere) => {
-      if (matiere.nom_matiere === nom_matiere) {
-        return {
-          ...matiere,
-          fourniture_list: matiere.fourniture_list.map((fourniture) => {
-            if (fourniture.parsedItem.id === selectedItemIndex) { // Assuming selectedItemIndex is the ID of the item to replace
-              return {
-                ...fourniture,
-                parsedItem: { ...fourniture.parsedItem, ...selectedProduct } // Replace the details
-              };
-            }
-            return fourniture;
-          })
-        };
-      }
-      return matiere;
-    })
+const toggleConstructionDiv = () => {
+  setShowAjouterunArticle(!showAjouterunArticle); // Toggle the visibility
+};
+
+const parseAvailableColors = (colorsString) => {
+  if (colorsString.includes('http')) {
+    const colorEntries = colorsString.split(',');
+    return colorEntries.map(entry => entry.split(':')[0].trim());
+  } else {
+    return colorsString.split(',').map(color => color.trim());
+  }
+};
+
+const renderColorDropdowns = (colorsString, quantity) => {
+  const dropdowns = [];
+  const colors = parseAvailableColors(colorsString);
+
+  for (let i = 0; i < quantity; i++) {
+    dropdowns.push(
+      <div key={`article-${i}`} className="mb-4 flex w-full items-center"> {/* Added a unique key and a margin bottom */}
+      <div className='w-2/3'>Article {i + 1}</div> {/* Increment i by 1 for display */}
+      <select className="bg-white border border-gray-300 rounded-md p-2 w-full ">
+        {colors.map((color, index) => (
+          <option key={`${i}-${index}`} value={color}>
+            {color}
+          </option>
+        ))}
+      </select>
+    </div>
   );
+  }
+
+  return dropdowns;
 };
 
 
@@ -459,7 +477,8 @@ const handleReplaceProduct = (nom_matiere) => {
         {/* display list*/}
 
         {showProductList && (
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 border border-black rounded-lg w-3/4 max-h-80 overflow-y-auto z-50">
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 border border-black rounded-lg w-3/4 h-3/4 overflow-y-auto z-50">
+            
           {/* Close button */}
           <button
             onClick={handleCloseProductList}
@@ -468,13 +487,27 @@ const handleReplaceProduct = (nom_matiere) => {
             X
           </button>
           {/* Product List */}
-          <>{selectedcategory}</>
-              <ul>
-              <table className="border-collapse border m-2 rounded-2xl">
+          <div className='text-xl mb-4 font-bold'>{selectedcategory}</div>
+              {isMobile? (<div className="flex flex-col">
+        {fetchedProducts.map((product, index) => (
+          <div key={product.id} className="flex flex-col items-center border rounded-2xl mb-3 last:border-b-0 p-4">
+            <img className="w-32 h-32 mb-3" src={product.product_picture} alt={product.name_to_display} />
+            <div className="text-center mb-4">{product.name}</div>
+            <div className="text-xl font-bold mb-4">{product.price} Dnt</div>
+            <button 
+              className="font-bold p-2 border rounded-2xl"
+              onClick={() => handleReplaceProduct(product)} // Adjust parameters as needed
+            >
+              Choisir cet article
+            </button>
+          </div>
+        ))}
+      </div>):(<table className="border-collapse border m-2 rounded-2xl w-full">
       <thead>
         <tr className="bg-gray-200">
-        <th className="border p-2 w-1/3 items-center justify-center flex">image</th>
-          <th className="border p-2">Nom</th>
+        <th className="border p-2  justify-center flex">image</th>
+        <th className="border p-2">Nom</th>
+        <th className="border p-2">action</th>
         </tr>
       </thead>
       <tbody>
@@ -486,21 +519,21 @@ const handleReplaceProduct = (nom_matiere) => {
               <td className="border p-2 flex-col justify-around">
               <div className="text-left line-clamp-2 mb-4">{product.name}</div>
               <div className='flex justify-between'>
-              <div>{product.price}</div>
-              <button 
-              className="font-bold border p-2"
-              onClick={() => handleReplaceProduct(parsedItem.category, parsedItem.subcategory, index)}
-
-              >Choisir cet article</button>
+              <div className=' text-xl font-bold  mr-1' >{product.price} Dnt</div>
               </div>
+              </td>
+              <td className="">
+              <button 
+              className="font-bold  p-2 border rounded-2xl"
+              onClick={() => handleReplaceProduct(product)}
+              >Choisir cet article</button>
+              
             </td>
  
           </tr>
         ))}
       </tbody>
-    </table>
-
-              </ul>
+              </table>)}
         </div>
       )}
 
@@ -537,18 +570,18 @@ const handleReplaceProduct = (nom_matiere) => {
                       <div className="border rounded-2xl p-2 m-3 bg-white">
                         <div className="flex flex-col w-full justify-center items-center">
                         <div className='flex w-full '>
-  <div className="mb-2 items-center font-bold text-xl text-center w-full">{nom_matiere}</div>
-  <div className="ml-auto">
-    <button 
-      className={`border rounded-3xl ${collapseStates[0] ? 'rotate-180' : ''}`} 
+                        <div className="mb-2 items-center font-bold text-xl text-center w-full">{nom_matiere}</div>
+                        <div className="ml-auto">
+                          <button 
+                            className={`border rounded-3xl ${collapseStates[index] ? 'rotate-180' : ''}`} 
 
-    onClick={() => toggleCollapse(index)}>
-    <svg  width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M18.2929 15.2893C18.6834 14.8988 18.6834 14.2656 18.2929 13.8751L13.4007 8.98766C12.6195 8.20726 11.3537 8.20757 10.5729 8.98835L5.68257 13.8787C5.29205 14.2692 5.29205 14.9024 5.68257 15.2929C6.0731 15.6835 6.70626 15.6835 7.09679 15.2929L11.2824 11.1073C11.673 10.7168 12.3061 10.7168 12.6966 11.1073L16.8787 15.2893C17.2692 15.6798 17.9024 15.6798 18.2929 15.2893Z" fill="#0F0F0F"/>
-</svg>
-    </button>
-  </div>
-</div>
+                          onClick={() => toggleCollapse(index)}>
+                          <svg  width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18.2929 15.2893C18.6834 14.8988 18.6834 14.2656 18.2929 13.8751L13.4007 8.98766C12.6195 8.20726 11.3537 8.20757 10.5729 8.98835L5.68257 13.8787C5.29205 14.2692 5.29205 14.9024 5.68257 15.2929C6.0731 15.6835 6.70626 15.6835 7.09679 15.2929L11.2824 11.1073C11.673 10.7168 12.3061 10.7168 12.6966 11.1073L16.8787 15.2893C17.2692 15.6798 17.9024 15.6798 18.2929 15.2893Z" fill="#0F0F0F"/>
+                      </svg>
+                          </button>
+                        </div>
+                      </div>
 
                           <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}  gap-4 text-center`}>
                           {!collapseStates[index] && (    
@@ -568,18 +601,17 @@ const handleReplaceProduct = (nom_matiere) => {
                                 </svg>
                                 </button> 
                                 </div>                              
-                              <div className='flex items-center flex-col rounded-2xl h-full p-3'>
-                              
+
+                              <div className='flex items-center flex-col rounded-2xl h-full p-3'>                              
                               {/* image */}
                               <div className=''>
-                                <img className={`${parsedItem.id.charAt(0) === 'M' ? ' w-30 h-36 mb-3 p-2' : 'w-32 h-32 mb-3 p-2'}`} src={parsedItem.id.charAt(0) === 'M' ? parsedItem.image : parsedItem.product_picture  } alt= {parsedItem.id.charAt(0) === 'M' ? parsedItem.nom : parsedItem.name_to_display}  /></div>
-                              
+                                <img className={`${parsedItem.id.charAt(0) === 'M' ? ' w-30 h-36 mb-3 p-2' : 'w-32 h-32 mb-3 p-2'}`} src={parsedItem.id.charAt(0) === 'M' ? parsedItem.image : parsedItem.product_picture  } alt= {parsedItem.id.charAt(0) === 'M' ? parsedItem.nom : parsedItem.name_to_display}  /></div>                              
                               {/* nom category etc*/}
                               <div className='flex flex-col h-4/5 justify-evenly w-full'>
 
                               <h2 className={`text-center text-xl mb-2 line-clamp-2 ${parsedItem.id.charAt(0) === 'M' ? '2/3' : '1/3'} `}>                                
 
-                                {parsedItem.id.charAt(0) === 'M' ? parsedItem.nom : parsedItem.category  }
+                                {parsedItem.id.charAt(0) === 'M' ? parsedItem.name_to_display : parsedItem.category  }
                                 </h2>
 
                                 <h2 className={`text-center text-xs line-clamp-3  ${parsedItem.id.charAt(0) === 'M' ? '' : ''}`}>
@@ -606,7 +638,7 @@ const handleReplaceProduct = (nom_matiere) => {
     ) : (
       <div></div>
     )}
-    <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs w-full' onClick={() => fetchProducts(parsedItem.category, parsedItem.subcategory, index)}>
+    <button className='ml-2 text-blue-300 p-1 border rounded-2xl text-xs w-full' onClick={() => fetchProducts(parsedItem.category, parsedItem.subcategory, index, parsedItem, nom_matiere)}>
       Tout les produits
     </button> 
   </div>
@@ -614,7 +646,6 @@ const handleReplaceProduct = (nom_matiere) => {
 
                                 
                                 </div>
-
                               {/* prix qtt supprimer*/}
                               <>
                                 { parsedItem.quantity ? (
@@ -624,7 +655,7 @@ const handleReplaceProduct = (nom_matiere) => {
                                         <input
                                           type="number"
                                           className='ml-2 w-3/5'
-                                          value={parsedItem.quantity ? (parsedItem.quantity) :(1) }
+                                          value={(parsedItem.quantity)}
                                           onChange={(e) =>
                                             handleQuantityChange(parsedItem.id, Math.max(parseInt(e.target.value, 10), 0))
                                           }
@@ -661,15 +692,36 @@ const handleReplaceProduct = (nom_matiere) => {
 
                                 </div>)
                               }
-                              </>
-                                 
-                                
+                              </>   
+                              {/*gestion des couleurs*/}                                                              
+                              <div className='mt-4 w-full items-center'>
+                                {parsedItem.available_colors ? 
+                                ( <>
+                                {parsedItem.available_colors && renderColorDropdowns(parsedItem.available_colors, parsedItem.quantity)}
+                                </>)
+                                :(<></>)}
+                              </div>
                                 </div>
                                 
                             </div>                                                                              
                           ))}                          
-                          <div className="w-full flex border border-blue-100 rounded-lg p-4 items-center justify-center"><button className="border p-2 rounded-2xl">Ajouter un autre Article</button></div>
+                          <div className="w-full flex border border-blue-100 rounded-lg p-4 items-center justify-center">
+                            <button
+                            onClick={toggleConstructionDiv} // Trigger the function on click
+                            className="border p-2 rounded-2xl">Ajouter un autre Article
+                            </button>
+                            </div>
                           </>  )}
+
+                          {showAjouterunArticle && (
+                          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 border border-black rounded-lg w-3/4 h-3/4 overflow-y-auto z-50">
+                                  <button
+                                  onClick={handleCloseAjouterunArticle} 
+                                  className="absolute top-0 right-0 text-red-500 px-2 py-1"
+                                >X</button>
+                            <div className="text-xl mb-4 font-bold  flex justify-center h-full items-center">En construction</div>
+                          </div>
+                        )}
 
                          
 
@@ -686,14 +738,6 @@ const handleReplaceProduct = (nom_matiere) => {
 
         {/* svgs*/}
         <div className="flex flex-row rounded-xl justify-evenly items-center w-screen mt-8">
-
-        <div className="border rounded-3xl p-4 m-2  flex flex-col items-center bg-white w-auto " style={{ height: 'auto' }}>
-            <img
-      src={'/low-sales.png'}
-      alt=""
-      className="w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 xl:w-32 xl:h-32 m-3"
-    />
-            Les prix les moins chers</div>
 
             <div className="border rounded-3xl p-4 m-4  flex flex-col items-center bg-white w-auto" style={{ height: 'auto' }}>
             <img
