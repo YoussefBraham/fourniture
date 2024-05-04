@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 
 const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourniture_info directly from props
-    const [fournitures, setFournitures] = useState([]);
+  const [fournitures, setFournitures] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [subcategories, setSubcategories] = useState([]);
@@ -13,8 +13,7 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
   const [sortColumn, setSortColumn] = useState('price'); // Sort by price by default
   const [sortDirection, setSortDirection] = useState('desc'); // Descending order by default
   const [filterText, setFilterText] = useState('');
-
-
+  const [selectedColors, setSelectedColors] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,8 +87,7 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
     setFilterText(text);
   };
 
-   // Sorting function based on column and direction
-   const sortedFournitures = [...fournitures].sort((a, b) => {
+  const sortedFournitures = [...fournitures].sort((a, b) => {
     if (sortColumn) {
       // Convert price to numbers before comparison
       const first = sortColumn === 'price' ? parseFloat(a[sortColumn]) : a[sortColumn].toUpperCase();
@@ -103,10 +101,74 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
     return 0;
   });
 
-
   const handleAddToSelected = (product) => {
-    setFourniture_info(product); // Use setFourniture_info function passed from props to update parent state
+  let productWithColor;
+
+  // Check if 'available_colors' is not null or undefined before processing
+  if (product.available_colors) {
+    // Append the selected color to the product info
+    const colors = parseAvailableColors(product.available_colors);
+    const selectedColor = selectedColors[product.id] || (colors.length > 0 ? colors[0] : 'No colors available');
+
+    productWithColor = {
+      ...product,
+      selectedColor: selectedColor
+    };
+  } else {
+    // Assign default color if no colors are available
+    productWithColor = {
+      ...product,
+      selectedColor: 'No color available'
+    };
+  }
+
+  // Send the updated product info to the parent
+  setFourniture_info(productWithColor);
+  console.log('Data sent to parent with color:', productWithColor);
   };
+
+  const parseAvailableColors = (colorsString) => {
+    if (colorsString){
+    if ( colorsString.includes('http')) {
+      const colorEntries = colorsString.split(',');
+      return colorEntries.map(entry => entry.split(':')[0].trim());
+    } else {
+      return colorsString.split(',').map(color => color.trim());
+    }}
+    else {        console.log('No available colors or color data is missing');
+  }
+  };
+
+  const handleColorChange = (productId, selectedColor) => {
+    setSelectedColors(prevColors => ({
+      ...prevColors,
+      [productId]: selectedColor
+    }));
+  };
+
+  const renderColorDropdowns = (colorsString,productId ) => {
+    const dropdowns = [];
+    const colors = parseAvailableColors(colorsString);
+  
+
+      dropdowns.push(
+        <div key={`article-`} className="mb-4 flex w-full items-center"> {/* Added a unique key and a margin bottom */}
+        <select className="bg-white border border-gray-300 rounded-md p-2 w-full "
+                value={selectedColors[productId] || ''}
+                onChange={e => handleColorChange(productId, e.target.value)}>
+          {colors.map((color, index) => (
+            <option key={`${index}`} value={color}>
+              {color}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  
+  
+    return dropdowns;
+  };
+  
 
 
   return (
@@ -125,9 +187,9 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                 value={filterText}
                 onChange={(e) => handleFilterTextChange(e.target.value)}
               />
-            </div>
+        </div>
 
-          <div className='m-2 border p-5 rounded-2xl'>
+        <div className='m-2 border p-5 rounded-2xl'>
             <label htmlFor='category'>Category:</label>
             <select id='category' value={selectedCategory} onChange={(e) => handleCategoryChange(e.target.value)}>
               <option value='all'>All</option>
@@ -137,10 +199,9 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                 </option>
               ))}
             </select>
-          </div>
-
+        </div>
           
-          <div className='m-2 border p-5 rounded-2xl'>
+        <div className='m-2 border p-5 rounded-2xl'>
               <label htmlFor='subcategory'>Subcategory:</label>
               <select
                 id='subcategory'
@@ -154,11 +215,9 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                   </option>
                 ))}
               </select>
-            </div>
+        </div>
 
-        
-
-            </div>
+        </div>
           
 
           <table className='mt-5'>
@@ -200,7 +259,8 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                     </div>
 
                     <div>{fourniture.name_to_display}</div>
-                    <div>{fourniture.available_colors}</div>
+                    {fourniture.available_colors && renderColorDropdowns(fourniture.available_colors, fourniture.id)}
+
                     </td>
                     <td className='text-left'>{fourniture.price}</td>
                     <td  className='text-left pl-5'> <button onClick={() => handleAddToSelected(fourniture)}>Add to List</button> {/* Button to add product to selected list */}</td>
@@ -209,11 +269,12 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                 ))}
             </tbody>
           </table>
+        
         </>
       )}
     <Link className='mt-10' to='https://www.welcomeoffice.com/guides_achat/classement-et-archivage/42/les-differents-types-de-classeurs.aspx' target="_blank">
         <>Comprendre dimension Classeur</>
-        </Link>
+    </Link>
     </div>
     
   );

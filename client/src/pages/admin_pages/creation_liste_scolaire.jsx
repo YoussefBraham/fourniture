@@ -17,8 +17,6 @@ export default function CreationListeScolaire() {
   const [showModal, setShowModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState('');
   const [loadedliste, setloadedliste] = useState([]);
-
-
   const [showFournitures, setShowFournitures] = useState(false);
 
   const toggleFournitures = () => {
@@ -102,12 +100,13 @@ export default function CreationListeScolaire() {
       ecole: selectedEcole,
       classe: selectedClasse,
       matiere: selectedMatiere,
+      matiere_order: matiereOrder,
       selectedItems: removeCircularReferences([...selectedItems])
 
     };
-
+    console.log('requestData',requestData)
     // Make an HTTP request to send the data to your backend
-    axios
+   {/* axios
       .post('/creation_liste', requestData)
       .then((response) => {
         console.log('Data sent to backend successfully:', response.data);
@@ -118,10 +117,11 @@ export default function CreationListeScolaire() {
         console.error('Error sending data to backend:', error);
         alert(error)
         // Optionally, you can handle errors (e.g., show an error message)
-      });
+      });*/}
   };
 
   const handleDataFromChild = (data) => {
+    console.log('data',data)
     if (directingToSimilarProduct) {
         const selectedIndex = similarItemIndex; // Assuming similarItemIndex is the index received from the button AddSimilarProduct
         setSelectedItems(prevItems => {
@@ -228,9 +228,50 @@ useEffect(() => {
   }
 }, [loadedliste]);
 
+// Function to generate the "Article number X" messages based on quantity
+const renderArticleNumbers = (quantity, availableColors, index) => {
+  const colors = parseAvailableColors(availableColors);
+  let articles = [];
+  for (let i = 1; i <= quantity; i++) {
+    articles.push(
+      <div key={`article-${index}-${i}`} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{ marginRight: '10px' }}>Article number {i}:</span>
+        <select>
+            {colors.map((color, index) => (
+              <option key={index} value={color}>{color}</option>
+            ))}
+          </select>
+      </div>
+    );
+  }
+  return articles;
+};
 
+const parseAvailableColors = (colorsString) => {
+  if (colorsString){
+  if ( colorsString.includes('http')) {
+    const colorEntries = colorsString.split(',');
+    return colorEntries.map(entry => entry.split(':')[0].trim());
+  } else {
+    return colorsString.split(',').map(color => color.trim());
+  }}
+  else {        console.log('No available colors or color data is missing');
+}
+};
+const [displayOrderMap, setDisplayOrderMap] = useState({});
 
-console.log('loadedliste',loadedliste)
+const handleDisplayOrder = (itemId, newQuantity) => {
+  setDisplayOrderMap(prevMap => ({
+    ...prevMap,
+    [itemId]: newQuantity
+  }));
+};
+
+const [matiereOrder, setMatiere_order] = useState(1);
+
+  const handleMatiereOrder = (newQuantity) => {
+    setMatiere_order(newQuantity);}
+
 
 return (
     <div className="flex flex-col items-center justify-center border rounded-2xl">
@@ -279,12 +320,28 @@ return (
             ))}
           </select>
         </div>
+
+        {/*Select MatiereOrder*/}
+           <div className="p-2 m-4 border rounded-xl border-gray-600">
+  
+        </div>
+
+
+
       </div>
+      
 
       <div className="m-4 p-2 border rounded-xl border-gray-600 w-full flex flex-col items-center justify-between">
         <p>Selected Ecole: {selectedEcole}</p>
         <p>Selected Classe: {selectedClasse}</p>
         <p>Selected Matiere: {selectedMatiere}</p>
+        <p>Matiere display Order:        <input
+              className='border'
+              type="number"
+              value={matiereOrder}
+              onChange={(e) => handleMatiereOrder(e.target.value)}
+            /></p>  
+
         <p>Selected fournitures: </p>
         {selectedItems ? (
     <ul>
@@ -294,62 +351,75 @@ return (
       <th className="border-r p-2 text-left">Picture</th>
       <th className="border-r p-2 text-left">Name</th>
       <th className="border-r p-2 text-left">Quantity</th>
+      <th className="border-r p-2 text-left">Color</th>
       <th className="border-r p-2 text-left">Price</th>
       <th className="p-2 text-left border">Actions</th>
       <th className="p-2 text-left">Similar products</th>
+      <th className="p-2 text-left">display_order</th>
+
 
     </tr>
   </thead>
   <tbody>
-  {selectedItems && selectedItems.map((item, index) => {
-  if (!item || !item.id) return null; // This line ensures that item and item.id are not null or undefined
-  return (
-    <tr className="border-b" key={index}>
-      <td className="border-r p-2">
-        <img  src={item.id.charAt(0) === 'M' ? item.image : item.product_picture} alt={item.id.charAt(0) === 'M' ? item.nom : item.name_to_display} style={{ maxWidth: '100px', maxHeight: '100px' }} />        
-      </td>
-      <td className="border-r p-2">
-        <div className="flex flex-col">
-          <div className="text-left">{item.id.charAt(0) === 'M' ? item.nom : item.name_to_display}</div>
-          {item.available_colors ? (<div className="text-left">Available colors: {item.available_colors}</div>) : (<></>)}
-        </div>
-      </td>
-      <td className="border-r p-2 text-left">
-        <input className=''
-          type="number"
-          min="1" // Set min attribute to ensure quantity is greater than or equal to 1
-          value={item.quantity || 1} // Set default value to 1
-          onChange={(event) => handleQuantityChange(index, event)}
-        />
-      </td>
-      <td className="border-r p-2 text-left flex flex-col">
-        <div>Price per unit: {item.price}</div>
-        <div>Total price: {item.price * (item.quantity || 1)}</div>
-      </td>
-      <td className="p-2 border-r">
-        <div className="flex flex-col items-center">
-          <button className="border rounded p-1 m-1" onClick={() => handleRemoveItem(index)}>Remove</button>
-          <button className={`border rounded p-1 m-1 ${directingToSimilarProduct ? 'bg-blue-500' : ''}`} onClick={() => AddSimilarProduct(index)}>Add a Similar Product</button>
-        </div>
-      </td>
-      <td className="border-r p-2 text-left">
-        {item.similarItems ? (
-          <div>
-            <p className="text-left">Similar Items:</p>
-            {item.similarItems.map((similarItem, similarIndex) => (
-              <div className='flex' key={similarIndex}>
-                <p className="text-left mr-4">{similarItem.id}</p>
-                <p className="text-left">{similarItem.price} dt</p>
-              </div>
-            ))}
+    {selectedItems && selectedItems.map((item, index) => (
+      
+      <tr className="border-b" key={index}>
+        <td className="border-r p-2">
+          <img onClick={() => openModal(imageUrl)} src={item.id.charAt(0) === 'M' ? item.image : item.product_picture  } alt= {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display} style={{ maxWidth: '100px', maxHeight: '100px' }} />
+          {showModal && (
+        <Modal onClose={closeModal} imageUrl={selectedImageUrl} />
+      )}
+
+        </td>
+        <td className="border-r p-2">
+          <div className="flex flex-col">
+            <div className="text-left">  {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display}</div>
           </div>
-        ) : (<></>)}
-      </td>
-    </tr>
-  );
-})}
+        </td>
+        <td className="border-r p-2 text-left">
 
+{/* Input field for quantity */}
+<input className=''
+        type="number"
+        min="0" // Set min attribute to ensure quantity is greater than or equal to 1
+        value={item.quantity || 1} // Set default value to 1
+        onChange={(event) => handleQuantityChange(index, event)}
+      />
 
+        </td>
+        <td className='border-r p-2'>{item.quantity > 1 && item.available_colors ?   renderArticleNumbers(item.quantity, item.available_colors) : (item.selectedColor || 'No color available')}</td>
+
+        <td className="border-r p-2 text-left flex flex-col">
+          <div>Price per unit: {item.price}</div>
+          <div>Total price : {item.price * (item.quantity || 0)}</div>
+          </td>
+        <td className="p-2 border-r">
+          <div className="flex flex-col items-center">
+            <button className="border rounded p-1 m-1" onClick={() => handleRemoveItem(index)}>Remove</button>
+            <button className={`border rounded p-1 m-1 ${directingToSimilarProduct ? 'bg-blue-500' : ''}`} onClick={() => AddSimilarProduct(index)}>Add a Similar Product</button>
+          </div>
+        </td>
+        <td className="border-r p-2 text-left">            
+        {item.similarItems ? (
+              <div>
+                <p className="text-left">Similar Items:</p>
+                {item.similarItems.map((similarItem, similarIndex) => (
+                  <div className='flex' key={similarIndex}>
+                    <p className="text-left mr-4">{similarItem.id}</p>
+                    <p className="text-left">{similarItem.price} dt</p>
+                  </div>
+                ))}
+              </div>
+            ):(<></>)}</td>
+        
+        <td className="border-r p-2 text-left">   <input
+    type="number"
+    value={displayOrderMap[item.id] || 1} // Default value is 1 if no display_order is set
+    onChange={(e) => handleDisplayOrder(item.id, e.target.value)}
+    /></td>
+      </tr>
+    ))}
+    
   </tbody>
 </table>
     </ul>

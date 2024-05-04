@@ -108,7 +108,6 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
     setManuelle_info(product); // Use setManuelle_info function passed from props to update parent state
   };
 
-  console.log('manuelles',manuelles)
 
   return (
     <div className='flex flex-col w-full m-5 items-center'>
