@@ -101,10 +101,32 @@ export default function CreationListeScolaire() {
       classe: selectedClasse,
       matiere: selectedMatiere,
       matiere_order: matiereOrder,
-      selectedItems: removeCircularReferences([...selectedItems])
-
     };
-    console.log('requestData',requestData)
+  
+    // Create an array to hold the transformed items
+    const transformedItems = [];
+  
+    // Map through the selectedItems array
+    selectedItems.forEach((item, index) => {
+      // Push a new object for each item to the transformedItems array
+      transformedItems.push({
+        ecole: selectedEcole,
+        classe: selectedClasse,
+        matiere: selectedMatiere,
+        matiere_order: matiereOrder,
+        item_id: item.id,
+        item_quantity: item.quantity || 1,
+        selected_color: item.selectedColor || 'no color' ,
+        similar_item: item.similarItems ,
+
+        // Include other properties you want to send
+        // Add display order for each item
+        display_order:  parseInt(item.item_display_order) || 1// Default to 0 if display order is not set
+      });
+    });
+  
+    // Add the transformed items to the requestData object
+    console.log('transformedItems', transformedItems);
     // Make an HTTP request to send the data to your backend
    {/* axios
       .post('/creation_liste', requestData)
@@ -121,14 +143,15 @@ export default function CreationListeScolaire() {
   };
 
   const handleDataFromChild = (data) => {
-    console.log('data',data)
+    console.log("data",data)
+    console.log('data.id',data.id)
     if (directingToSimilarProduct) {
         const selectedIndex = similarItemIndex; // Assuming similarItemIndex is the index received from the button AddSimilarProduct
         setSelectedItems(prevItems => {
             const updatedItems = [...prevItems];
             if (updatedItems[selectedIndex]) {
                 // If selectedItem at the selectedIndex exists, add the data to its similarItems
-                updatedItems[selectedIndex].similarItems = [...(updatedItems[selectedIndex].similarItems || []), data];
+                updatedItems[selectedIndex].similarItems = [...(updatedItems[selectedIndex].similarItems || []), data.id];
             }
             return updatedItems;
         });
@@ -137,8 +160,11 @@ export default function CreationListeScolaire() {
     } else {
         // If directingToSimilarProduct is false, add the data to selectedItems
         setSelectedItems(prevItems => [...prevItems, data]);
+        setSelectedItems(prevItems => [...prevItems, { ...data, item_display_order: 1 }]); // Set default display_order to 1
+
     }
     setDirectingToSimilarProduct(false);
+    console.log('selectedItems',selectedItems)
 };
 
   const handleRemoveItem = (index) => {
@@ -228,15 +254,27 @@ useEffect(() => {
   }
 }, [loadedliste]);
 
+
+
 // Function to generate the "Article number X" messages based on quantity
-const renderArticleNumbers = (quantity, availableColors, index) => {
+const renderArticleNumbers = (quantity, availableColors, itemid,index) => {
   const colors = parseAvailableColors(availableColors);
   let articles = [];
+  const test = Array(quantity).fill(colors[0])
+
+  const handleColorChange = (event, articleIndex) => {
+    const { value } = event.target;
+    test[articleIndex-1]= value    
+    const selectedIndex = selectedItems.findIndex(item => item.id === itemid);
+    selectedItems[selectedIndex].selectedColor =test  
+  };
+
+
   for (let i = 1; i <= quantity; i++) {
     articles.push(
       <div key={`article-${index}-${i}`} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
         <span style={{ marginRight: '10px' }}>Article number {i}:</span>
-        <select>
+        <select onChange={(event) => handleColorChange(event, i)}>
             {colors.map((color, index) => (
               <option key={index} value={color}>{color}</option>
             ))}
@@ -258,13 +296,13 @@ const parseAvailableColors = (colorsString) => {
   else {        console.log('No available colors or color data is missing');
 }
 };
-const [displayOrderMap, setDisplayOrderMap] = useState({});
 
-const handleDisplayOrder = (itemId, newQuantity) => {
-  setDisplayOrderMap(prevMap => ({
-    ...prevMap,
-    [itemId]: newQuantity
-  }));
+const handleItemDisplayOrderChange = (index, value) => {
+  setSelectedItems(prevItems => {
+      const updatedItems = [...prevItems];
+      updatedItems[index].item_display_order = value;
+      return updatedItems;
+  });
 };
 
 const [matiereOrder, setMatiere_order] = useState(1);
@@ -387,7 +425,7 @@ return (
       />
 
         </td>
-        <td className='border-r p-2'>{item.quantity > 1 && item.available_colors ?   renderArticleNumbers(item.quantity, item.available_colors) : (item.selectedColor || 'No color available')}</td>
+        <td className='border-r p-2'>{item.quantity > 1 && item.available_colors ?   renderArticleNumbers(item.quantity, item.available_colors, item.id) : (item.selectedColor || 'No color available')}</td>
 
         <td className="border-r p-2 text-left flex flex-col">
           <div>Price per unit: {item.price}</div>
@@ -400,22 +438,22 @@ return (
           </div>
         </td>
         <td className="border-r p-2 text-left">            
-        {item.similarItems ? (
-              <div>
-                <p className="text-left">Similar Items:</p>
-                {item.similarItems.map((similarItem, similarIndex) => (
-                  <div className='flex' key={similarIndex}>
-                    <p className="text-left mr-4">{similarItem.id}</p>
-                    <p className="text-left">{similarItem.price} dt</p>
-                  </div>
-                ))}
-              </div>
-            ):(<></>)}</td>
+        {item.similarItems && item.similarItems.length > 0 ? (
+  <div>
+    <p className="text-left">Similar Items:</p>
+    {item.similarItems.map((similarItemId, similarIndex) => (
+      <div className='flex flex-col' key={similarIndex}>
+        <p className="text-left mr-4">{similarItemId}</p>
+        {/* You can add additional rendering logic here for each similar item */}
+      </div>
+    ))}
+  </div>
+) : null}</td>
         
         <td className="border-r p-2 text-left">   <input
     type="number"
-    value={displayOrderMap[item.id] || 1} // Default value is 1 if no display_order is set
-    onChange={(e) => handleDisplayOrder(item.id, e.target.value)}
+    value={item.item_display_order || 1} // Default value is 1 if no display_order is set
+    onChange={(e) => handleItemDisplayOrderChange(index, e.target.value)} // Implement this function to handle changes
     /></td>
       </tr>
     ))}

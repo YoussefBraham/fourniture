@@ -124,7 +124,6 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
 
   // Send the updated product info to the parent
   setFourniture_info(productWithColor);
-  console.log('Data sent to parent with color:', productWithColor);
   };
 
   const parseAvailableColors = (colorsString) => {
