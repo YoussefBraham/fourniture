@@ -9,6 +9,18 @@ import Login from './pages/login';
 import Address from './pages/address';
 import Checkout from './pages/checkout';
 import Products from './pages/admin_pages/products.jsx';
+import VenteLivres from './pages/ventesLivres.jsx';
+import Carriere from './pages/carriere.jsx';
+import Contact from './pages/contact.jsx';
+import LivraisonDomicile from './pages/livraisonDomicile.jsx';
+import MoyenPaiement from './pages/moyenPaiement.jsx';
+import ProduitQualite from './pages/produitsQualite.jsx';
+import QuiSommesNous from './pages/quiSommeNous.jsx';
+
+
+
+
+
 
 import axios from 'axios';
 
@@ -33,6 +45,15 @@ function App() {
           <Route path="/address" element={<Address />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/venteLivres" element={<VenteLivres />} />
+          <Route path="/Carriere" element={<Carriere />} />
+          <Route path="/Contact" element={<Contact />} />
+          <Route path="/LivraisonDomicile" element={<LivraisonDomicile />} />
+          <Route path="/MoyenPaiement" element={<MoyenPaiement />} />
+          <Route path="/ProduitQualite" element={<ProduitQualite />} />
+          <Route path="/QuiSommesNous" element={<QuiSommesNous />} />
+
+
 
         </Route>
       </Routes>

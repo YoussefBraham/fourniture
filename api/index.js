@@ -13,10 +13,25 @@ app.use(express.json())
   
 app.get('/ecoles', async (req, res) => {
 try {
-    const response = await pool.query("SELECT * FROM ecoles");
+    const response = await pool.query("SELECT distinct ecole, classe FROM fourniture_classes_2 order by ecole, classe");
     res.json(response.rows);}
-catch{
-    console.log("erreur_ecole");}}); 
+catch  (error) {
+    console.log("erreur_ecole_1",  error )}});
+
+app.get('/ecoles_2', async (req, res) => {
+      try {
+          const response = await pool.query("SELECT  *  FROM ecoles");
+          res.json(response.rows);}
+      catch{
+          console.log("erreur_ecole_2");}});
+    
+app.get('/similarItems', async (req, res) => {
+  const { similar_item_id } = req.query;
+      try {
+          const response = await pool.query("SELECT  *  FROM produits_fournitures where id = $1 ",[similar_item_id]);
+          res.json(response.rows);}
+      catch{
+          console.log("erreur_simar_item");}})
  
 app.get('/fournitures', async (req, res) => {
         try {
@@ -74,11 +89,44 @@ app.post('/creation_liste', async (req, res) => {
   }
 });
 
+app.post('/creation_liste_2', async (req, res) => {
+  try {
+    const transformedItems = req.body;
 
-app.get('/all_fourniture_classe', async (req, res) => {
+    // Construct the SQL query
+    const query = `
+    INSERT INTO fourniture_classes_2 (ecole, classe, matiere, matiere_order, item_id, item_quantity, selected_color, similar_item, display_order)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  `;
+
+  // Extract and format data to be inserted into the database
+  const values = transformedItems.flatMap(item => [
+    item.ecole,
+    item.classe,
+    item.matiere,
+    item.matiere_order,
+    item.item_id,
+    item.item_quantity || 1, // Default to 1 if item_quantity is not provided
+    item.selected_color || 'no color',
+    JSON.stringify(item.similar_item), // Convert similar_item to JSON string
+    item.display_order || 1 // Default to 1 if display_order is not provided
+  ]);
+
+  // Execute the query with the provided parameters
+  await pool.query(query, values);
+
+  res.status(200).json({ message: 'Data submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+  app.get('/all_fourniture_classe_2', async (req, res) => {
     try {
       const { ecole, classe } = req.query;
-      const response = await pool.query("SELECT * FROM fourniture_classes WHERE nom_ecole = $1 AND nom_classe = $2", [ecole, classe]);
+      const response = await pool.query(
+        "SELECT fc2.*, coalesce(pf.name_to_display, pm.name_to_display) name, coalesce(pm.prix, pf.price) prix,isbn_numeric, pf.available_colors, coalesce(pf.product_picture, pm.image) image, pf.category, final_id FROM fourniture_classes_2 fc2 left join produits_fournitures pf on fc2.item_id= pf.id  left join produits_manuelles pm on fc2.item_id = pm.id  WHERE fc2.ecole = $1 AND fc2.classe = $2 order by matiere_order,display_order", [ecole, classe]);
       res.json(response.rows); 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -280,7 +328,6 @@ app.get('/all_fourniture_classe', async (req, res) => {
     }
   });
 
-
   app.get('/fournitures_category', async (req, res) => {
     try {
         const response = await pool.query("SELECT distinct categorie_1, categorie_2 FROM fourniture_2");
@@ -299,15 +346,14 @@ app.get('/all_fourniture_classe', async (req, res) => {
           }
         });
  
-        app.get('/livre_category', async (req, res) => {
+  app.get('/livre_category', async (req, res) => {
           try {
               const response = await pool.query("SELECT distinct niveau,category_1, category_2 FROM livres");
               res.json(response.rows);}
           catch{
               console.log("erreur_livre_category");}});
   
-
-              app.get('/livre_data', async (req, res) => {
+  app.get('/livre_data', async (req, res) => {
                 try {
 
                   const { niveau, category } = req.query;
@@ -365,7 +411,7 @@ app.get('/all_fourniture_classe', async (req, res) => {
   app.get('/get_all_products_category', async (req, res) => {
     try {
       const { category } = req.query;
-      const response = await pool.query("SELECT * FROM produits_fournitures WHERE category ilike $1", [`%${category}%`]);
+      const response = await pool.query("SELECT * FROM produits_fournitures WHERE category ilike $1 order by price", [`%${category}%`]);
       res.json(response.rows);
     } catch (error) {
       console.error('Error fetching data:', error);

@@ -3,15 +3,15 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="bg-blue-50 p-4 text-center mt-auto w-full">
+    <footer className="bg-blue-50 p-4 text-center  w-full mt-10 z-50" >
       <div className="flex justify-around">
         <div>
           <ul className='flex'>
             <li className='m-2'>
-              <Link to="/career">Carrière</Link>
+              <Link to="/carriere">Carrière</Link>
             </li>
             <li className='m-2'>
-              <Link to="/about-us">Qui sommes-nous ?</Link>
+              <Link to="/QuiSommesNous">Qui sommes-nous ?</Link>
             </li>
             <li className='m-2'>
               <Link to="/contact">Contacts</Link>

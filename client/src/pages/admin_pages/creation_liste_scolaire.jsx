@@ -36,12 +36,13 @@ export default function CreationListeScolaire() {
     'Physique Chimie',
     'Fournitures Scolaire',
     'Trousse & petites fournitures',
-    'Questionner le Monde'
+    'Questionner le Monde',
+    'Manuelles'
     ];
 
   // fetching ecole list
   useEffect(() => {
-    axios.get('/ecoles').then((response) => {
+    axios.get('/ecoles_2').then((response) => {
       const ecolesData = response.data;
       const nomEcole = ecolesData.map((ecole) => ecole.nom_ecole);
       setEcoles(nomEcole);
@@ -128,8 +129,8 @@ export default function CreationListeScolaire() {
     // Add the transformed items to the requestData object
     console.log('transformedItems', transformedItems);
     // Make an HTTP request to send the data to your backend
-   {/* axios
-      .post('/creation_liste', requestData)
+    axios
+      .post('/creation_liste_2', transformedItems)
       .then((response) => {
         console.log('Data sent to backend successfully:', response.data);
         // Optionally, you can handle success (e.g., show a success message)
@@ -139,7 +140,7 @@ export default function CreationListeScolaire() {
         console.error('Error sending data to backend:', error);
         alert(error)
         // Optionally, you can handle errors (e.g., show an error message)
-      });*/}
+      });
   };
 
   const handleDataFromChild = (data) => {
@@ -358,13 +359,6 @@ return (
             ))}
           </select>
         </div>
-
-        {/*Select MatiereOrder*/}
-           <div className="p-2 m-4 border rounded-xl border-gray-600">
-  
-        </div>
-
-
 
       </div>
       

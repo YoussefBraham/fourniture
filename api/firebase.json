@@ -9,7 +9,11 @@
         "firebase-debug.log",
         "firebase-debug.*.log"
       ],
-      "runtime": "nodejs18"
+      "runtime": "nodejs20" ,
+      "engines": {
+        "node": "20"
+      }
+      
     }
   ]
 }
