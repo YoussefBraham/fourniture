@@ -9,7 +9,7 @@ import RenderColorQuantities  from '../pages/components/rendercolorquantites.jsx
 
 export default function IndexPage({ parsedItems }) {
   const [ecoles, setEcoles] = useState(['']);
-  const [dataEcole, setDataeEcole] = useState(['']);
+  const [dataEcole, setDataEcole] = useState(['']);
   const [selectedEcole, setSelectedEcole] = useState('');
   const [selectedClasse, setSelectedClasse] = useState('');
   const [classes, setClasses] = useState(['']);
@@ -47,29 +47,46 @@ useEffect(() => {
 
   //getting ecole
   useEffect(() => {
+    axios.get('/ecoles').then((response) => {
+      const uniqueEcoles = [...new Set(response.data.map(item => item.ecole))];
+      setEcoles(uniqueEcoles);
+      setDataEcole(response.data);
 
-  axios.get('/ecoles').then((response) => {
-    const uniqueEcoles = [...new Set(response.data.map(item => item.ecole))];
-    setEcoles(uniqueEcoles);
-    setDataeEcole(response.data)
-  });
-}, []);
-
+      const savedEcole = sessionStorage.getItem('selectedEcole');
+      if (savedEcole) {
+        setSelectedEcole(savedEcole);
+        const filteredDataEcole = response.data.filter((ecole_item) =>
+          ecole_item.ecole === savedEcole
+        );
+        const nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
+        setClasses(nom_classe);
+         const savedClasse = sessionStorage.getItem('selectedClasse');
+       
+         if (savedClasse) {
+          setSelectedClasse(savedClasse);
+          fetchData(savedClasse, savedEcole);
+          //getting Lien liste scolaire            
+        }
+      }
+    });
+  }, []);
 // Getting classes when change ecole
-  const handleEcoleChange = (event) => {
-    const selectedEcoleValue = event.target.value;
-    setSelectedEcole(selectedEcoleValue);
-
-    const filteredDataEcole = dataEcole.filter((ecole_item) =>
-      ecole_item.ecole === selectedEcoleValue
-    );
-    const nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
-    setClasses(nom_classe);
-  };
+const handleEcoleChange = (event) => {
+  const selectedEcoleValue = event.target.value;
+  setSelectedEcole(selectedEcoleValue);
+  sessionStorage.setItem('selectedEcole', selectedEcoleValue);
+console.log('dataEcole',dataEcole)
+  const filteredDataEcole = dataEcole.filter((ecole_item) =>
+    ecole_item.ecole === selectedEcoleValue
+  );
+  const nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
+  setClasses(nom_classe);
+};
 
 // Getting fournitures and link when classe change
   const handleClasseChange = (event) => {
     setSelectedClasse(event.target.value);
+    sessionStorage.setItem('selectedClasse', event.target.value);
 
         //getting Lien liste scolaire
         axios.get('/lien_liste', {
@@ -79,6 +96,8 @@ useEffect(() => {
           },
         }).then((response) => {
           setLien_liste(response.data);
+          console.log('lien liste',response.data);
+
         });
       
       //Gettin fournitures_liste
@@ -92,7 +111,33 @@ useEffect(() => {
     }); 
 
   };
+
+  const fetchData = (classe, ecole) => {
+    // Fetch Lien liste scolaire
+    console.log('classe',classe)
+    console.log('ecole',ecole)
+
+    axios.get('/lien_liste', {
+      params: {
+        classe: classe,
+        ecole: ecole,
+      },
+    }).then((response) => {
+      setLien_liste(response.data);
+      console.log('setLien_liste',response.data)
+    });
     
+    // Fetch fournitures_liste
+    axios.get('/all_fourniture_classe_2', {
+      params: {
+        classe: classe,
+        ecole: ecole,
+      },
+    }).then((response) => {
+      setListefourniture(response.data);
+    }); 
+  };
+
   useEffect(() => {
     const sum = listefourniture.reduce((acc, element) => {
       const quantity = element.item_quantity ; // Assuming quantity defaults to 1 if undefined
@@ -370,8 +415,6 @@ const fetchProducts = async (category, subcategory, item_id, matiere, final_id) 
 setSelectedProduct(final_id)
 };
 
-
-
 const handleCloseProductList = () => {
   setShowProductList(false); // Hide the product list div
   setFetchedProducts([]); // Clear the fetched products
@@ -414,7 +457,6 @@ const parseAvailableColors = (colorsString) => {
     return colorsString.split(',').map(color => color.trim());
   }
 };
-
 
 const renderColorDropdowns = (colorsString,final_id, quantity =1) => {
   const dropdowns = [];
@@ -480,8 +522,6 @@ const renderColorQuantities = (colorCounts,final_id) => {
   ));
 };
 
-
-
 const handleChange = (color) => (event) => {
   console.log('color', color);
   console.log('colorCounts_1', initialColorCounts);
@@ -507,7 +547,6 @@ const renderColorQuantities_2 = (initialColorCounts) => {
     </>
   );
 };
-
 
 const addColorbutton = (value,final_id) => {
 console.log('addcolor',value)
@@ -627,7 +666,6 @@ const changeColors =() => {
   setShowColorsSelected(false)
   console.log('after_change_color',listefourniture[colorsItemsIndex])
 }
-
 
 
 const [parentColorsArray, setParentColorsArray] = useState('');
@@ -785,7 +823,7 @@ setListefourniture(prevList => {
 
                 {/* display all items*/}
           {showColorsSelected && (
-          <div className="fixed top-1/2 left-1/4 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 border border-black rounded-lg w-1/4   z-50">
+          <div className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 border border-black rounded-lg  ${isMobile? 'w-1/2' : 'w-1/4 left-1/4 '}   z-50` }>
             
           {/* Close button */}
           <div className='relative'>
@@ -800,7 +838,7 @@ setListefourniture(prevList => {
 
 
           {/* tout les produit bouton Product List */}
-          <div className='mt-5 text-xl mb-4 font-bold flex items-center justify-around w-full relative'>Modifier les couleurs</div>
+          <div className={`mt-5 text-xl mb-4 font-bold flex items-center justify-around w-full relative` }>Modifier les couleurs</div>
           <img className={`${listefourniture[colorsItemsIndex].item_id?.charAt(0) === 'M' ? ' w-36 h-42 mb-3 p-2' : 'w-38 h-38 mb-3 p-2'}`} src={listefourniture[colorsItemsIndex].image } alt= {listefourniture[colorsItemsIndex].image}  />                             
           {listefourniture[colorsItemsIndex].available_colors ? <div className='flex text-xs justify-center items-center'>{renderColorDropdowns(listefourniture[colorsItemsIndex].available_colors, listefourniture[colorsItemsIndex].final_id)}</div>  :<div></div>}
 
@@ -903,8 +941,10 @@ setListefourniture(prevList => {
                                 </button> 
                               </div>
                               <div className='flex items-center flex-col rounded-2xl h-full p-3'>
-                              <div className=''>
-                                <img className={`${filteredItem?.item_id?.charAt(0) === 'M' ? ' w-36 h-42 mb-3 p-2' : 'w-38 h-38 mb-3 p-2'}`} src={filteredItem.image } alt= {filteredItem.image}  /></div>                              
+                              
+                              <Link to={`/Produits/${filteredItem?.item_id?.charAt(0) === 'M' ? 'Manuelle' : 'Fourniture'}/${filteredItem?.item_id}`} target="_blank">                            
+                                <img className={`${filteredItem?.item_id?.charAt(0) === 'M' ? ' w-36 h-42 mb-3 p-2' : 'w-38 h-38 mb-3 p-2'}`} src={filteredItem.image } alt= {filteredItem.image}  />
+                                </Link>                              
                                     {/* nom category etc*/}
                                 <div className='flex flex-col h-4/5 justify-evenly w-full items-center'>
                                       <h2 className={`text-center text-xl mb-2 line-clamp-2 ${filteredItem?.item_id?.charAt(0) === 'M'  ? '2/3' : '1/3'} `}>                                
@@ -1018,10 +1058,12 @@ setListefourniture(prevList => {
         className={` w-1/2  z-0  ${iframeFixed ? '' : ''}`}>
           <div 
             ref={iframeRef}
-            className={`border ml-2 ${iframeFixed ? ' fixed bottom-0 flex items-center ' : 'relative h-full w-full'}`}>
+            className={`border ml-2 ${iframeFixed ? '  flex items-center ' : 'relative h-full w-full'}`}>
           <iframe
           className={` z-0 ${iframeFixed ? ' fixed top-0 w-1/2 h-full' : 'h-full w-full relative'}`}
           src={lien_liste[0].lien_fourniture}
+          //src={`/src/assets/aicha_manuelle_f.pdf`}
+
         ></iframe>
         </div>
 </div> }

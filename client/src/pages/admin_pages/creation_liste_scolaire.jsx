@@ -119,18 +119,17 @@ export default function CreationListeScolaire() {
         item_quantity: item.quantity || 1,
         selected_color: item.selectedColor || 'no color' ,
         similar_item: item.similarItems ,
+        display_order:  parseInt(item.item_display_order) || 1,// Default to 0 if display order is not set
+        final_id: item.id + '-' + selectedMatiere + '-' + (parseInt(item.item_display_order) || 1)
 
-        // Include other properties you want to send
-        // Add display order for each item
-        display_order:  parseInt(item.item_display_order) || 1// Default to 0 if display order is not set
       });
     });
   
     // Add the transformed items to the requestData object
     console.log('transformedItems', transformedItems);
     // Make an HTTP request to send the data to your backend
-    axios
-      .post('/creation_liste_2', transformedItems)
+    console.log(transformedItems)
+     axios.post('/creation_liste_2', transformedItems)
       .then((response) => {
         console.log('Data sent to backend successfully:', response.data);
         // Optionally, you can handle success (e.g., show a success message)

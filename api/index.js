@@ -92,11 +92,11 @@ app.post('/creation_liste', async (req, res) => {
 app.post('/creation_liste_2', async (req, res) => {
   try {
     const transformedItems = req.body;
-
+console.log(req.body)
     // Construct the SQL query
     const query = `
-    INSERT INTO fourniture_classes_2 (ecole, classe, matiere, matiere_order, item_id, item_quantity, selected_color, similar_item, display_order)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    INSERT INTO fourniture_classes_2 (ecole, classe, matiere, matiere_order, item_id, item_quantity, selected_color, similar_item, display_order,final_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   `;
 
   // Extract and format data to be inserted into the database
@@ -109,7 +109,8 @@ app.post('/creation_liste_2', async (req, res) => {
     item.item_quantity || 1, // Default to 1 if item_quantity is not provided
     item.selected_color || 'no color',
     JSON.stringify(item.similar_item), // Convert similar_item to JSON string
-    item.display_order || 1 // Default to 1 if display_order is not provided
+    item.display_order || 1, // Default to 1 if display_order is not provided
+    item.final_id // Default to 1 if display_order is not provided
   ]);
 
   // Execute the query with the provided parameters
@@ -390,6 +391,72 @@ app.post('/creation_liste_2', async (req, res) => {
                     res.status(500).json({ error: 'Internal Server Error' });
                 }
             });
+
+            app.get('/Fourniture/:product_id', async (req, res) => {
+              const { product_id } = req.params;
+              try {
+                  const query = `
+                      SELECT 
+                          id,
+                          name_to_display,
+                          name, 
+                          brand,
+                          price,
+                          available_colors,
+                          product_picture, 
+                          source,
+                          category,
+                          subcategory,
+                          description 
+                      FROM 
+                      produits_fournitures
+                      WHERE 
+                      id = $1;
+                  `;
+                  const values = [product_id];
+                  const response = await pool.query(query, values); 
+                  
+                  if (response.rows.length === 0) {
+                    return res.status(404).json({ error: 'Product not found' });
+                  }
+              
+                  res.json(response.rows[0]);
+                } catch (error) {
+                  console.error("Error:", error);
+                  res.status(500).json({ error: 'Internal Server Error' });
+                }
+          });
+
+          app.get('/Manuelle/:product_id', async (req, res) => {
+            const { product_id } = req.params;
+            try {
+                const query = `
+                    SELECT 
+                        id,
+                        nom,
+                        prix,
+                        description,
+                        information,
+                        image,
+                        name_to_display
+                    FROM 
+                    produits_manuelles
+                    WHERE 
+                    id = $1;
+                `;
+                const values = [product_id];
+                const response = await pool.query(query, values); 
+                
+                if (response.rows.length === 0) {
+                  return res.status(404).json({ error: 'Product not found' });
+                }
+            
+                res.json(response.rows[0]);
+              } catch (error) {
+                console.error("Error:", error);
+                res.status(500).json({ error: 'Internal Server Error' });
+              }
+        });
 
 
     app.get('/produit_manuelles', async (req, res) => {

@@ -16,10 +16,8 @@ import LivraisonDomicile from './pages/livraisonDomicile.jsx';
 import MoyenPaiement from './pages/moyenPaiement.jsx';
 import ProduitQualite from './pages/produitsQualite.jsx';
 import QuiSommesNous from './pages/quiSommeNous.jsx';
-
-
-
-
+import FourniturePage from './pages/produit/fourniture.jsx';
+import ManuellePage from './pages/produit/manuelle.jsx';
 
 
 import axios from 'axios';
@@ -52,7 +50,8 @@ function App() {
           <Route path="/MoyenPaiement" element={<MoyenPaiement />} />
           <Route path="/ProduitQualite" element={<ProduitQualite />} />
           <Route path="/QuiSommesNous" element={<QuiSommesNous />} />
-
+          <Route path="/Produits/Manuelle/:fourniture_id" element={<ManuellePage />} />
+          <Route path="/Produits/Fourniture/:fourniture_id" element={<FourniturePage />} />
 
 
         </Route>
