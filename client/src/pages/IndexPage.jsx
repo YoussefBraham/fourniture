@@ -1062,7 +1062,6 @@ setListefourniture(prevList => {
           <iframe
           className={` z-0 ${iframeFixed ? ' fixed top-0 w-1/2 h-full' : 'h-full w-full relative'}`}
           src={lien_liste[0].lien_fourniture}
-          //src={`/src/assets/aicha_manuelle_f.pdf`}
 
         ></iframe>
         </div>
