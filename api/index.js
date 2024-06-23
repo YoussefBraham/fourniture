@@ -4,130 +4,152 @@ const app = express();
 const cors = require("cors")
 const  pool = require('./db'); 
 
-app.use(cors({
+app.use(cors({ 
   origin: ['https://founitures-6f03c.web.app','http://localhost:5173'],
   credentials: true, 
 }));
 
 app.use(express.json())  
   
-app.get('/ecoles', async (req, res) => {
-try {
-    const response = await pool.query("SELECT distinct ecole, classe FROM fourniture_classes_2 order by ecole, classe");
-    res.json(response.rows);}
-catch  (error) {
-    console.log("erreur_ecole_1",  error )}});
+  app.get('/ecoles', async (req, res) => {
+  try {
+      const response = await pool.query("SELECT distinct ecole, classe FROM fourniture_classes_2 order by ecole, classe");
+      res.json(response.rows);}
+  catch  (error) {
+      console.log("erreur_ecole_1",  error )}});
 
-app.get('/ecoles_2', async (req, res) => {
-      try {
-          const response = await pool.query("SELECT  *  FROM ecoles");
-          res.json(response.rows);}
-      catch{
-          console.log("erreur_ecole_2");}});
+  app.get('/ecoles_2', async (req, res) => {
+        try {
+            const response = await pool.query("SELECT  *  FROM ecoles");
+            res.json(response.rows);}
+        catch{
+            console.log("erreur_ecole_2");}});
     
-app.get('/similarItems', async (req, res) => {
-  const { similar_item_id } = req.query;
-      try {
-          const response = await pool.query("SELECT  *  FROM produits_fournitures where id = $1 ",[similar_item_id]);
-          res.json(response.rows);}
-      catch{
-          console.log("erreur_simar_item");}})
+  app.get('/similarItems', async (req, res) => {
+    const { similar_item_id } = req.query;
+        try {
+            const response = await pool.query("SELECT  *  FROM produits_fournitures where id = $1 ",[similar_item_id]);
+            res.json(response.rows);}
+        catch{
+            console.log("erreur_simar_item");}})
  
-app.get('/fournitures', async (req, res) => {
+  app.get('/fournitures', async (req, res) => {
         try {
             const response = await pool.query("SELECT * FROM fournitures");
             res.json(response.rows);}
         catch{
-            console.log("erreur_fournitures");}});
+  }});
 
-app.get('/fournitures_by_selection', async (req, res) => {
-              try {
-                const { ecole, classe, matiere } = req.query;
-                const response = await pool.query("SELECT * FROM fourniture_classes WHERE nom_ecole = $1 AND nom_classe = $2 AND nom_matiere = $3", [ecole, classe, matiere]);
-                res.json(response.rows);
-              } catch (error) {
-                console.error('Error fetching data:', error);
-                res.status(500).json({ error: 'Internal Server Error' });
-              }
-});
+  app.get('/fournitures_by_selection', async (req, res) => {
+                try {
+                  const { ecole, classe, matiere } = req.query;
+                  const response = await pool.query("SELECT * FROM fourniture_classes_2 WHERE ecole = $1 AND classe = $2 AND matiere = $3 order by display_order", [ecole, classe, matiere]);
+                  res.json(response.rows);
+                } catch (error) {
+                  console.error('Error fetching data:', error);
+                  res.status(500).json({ error: 'Internal Server Error' });
+                }
+  });
 
-app.post('/creation_liste', async (req, res) => {
-  try {
-      const { ecole, classe, matiere, selectedItems } = req.body;
+  app.post('/creation_liste', async (req, res) => {
+    try {
+        const { ecole, classe, matiere, selectedItems } = req.body;
 
-      // Check if the data already exists in the database
-      const existingDataQuery = `
-          SELECT * FROM fourniture_classes
-          WHERE nom_ecole = $1 AND nom_classe = $2 AND nom_matiere = $3
+        // Check if the data already exists in the database
+        const existingDataQuery = `
+            SELECT * FROM fourniture_classes
+            WHERE nom_ecole = $1 AND nom_classe = $2 AND nom_matiere = $3
+        `;
+        const existingDataResponse = await pool.query(existingDataQuery, [ecole, classe, matiere]);
+        const existingData = existingDataResponse.rows[0];
+
+        if (existingData) {
+            // If data exists, update the existing record
+            const updateQuery = `
+                UPDATE fourniture_classes
+                SET fourniture_list = $1
+                WHERE nom_ecole = $2 AND nom_classe = $3 AND nom_matiere = $4
+            `;
+            await pool.query(updateQuery, [selectedItems, ecole, classe, matiere]);
+
+            res.status(200).json({ message: 'Data updated successfully' });
+        } else {
+            // If data doesn't exist, insert a new record
+            const insertQuery = `
+                INSERT INTO fourniture_classes (nom_ecole, nom_classe, nom_matiere, fourniture_list)
+                VALUES ($1, $2, $3, $4)
+            `;
+            await pool.query(insertQuery, [ecole, classe, matiere, selectedItems]);
+
+            res.status(200).json({ message: 'Data inserted successfully' });
+        }
+    } catch (error) {
+        console.error('Error inserting/updating data:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
+  app.post('/creation_liste_2', async (req, res) => {
+    const client = await pool.connect();
+    try {
+      const transformedItems = req.body;
+
+      // Begin the transaction
+      await client.query('BEGIN');
+
+      // Delete existing rows based on ecole, classe, and matiere
+      const { ecole, classe, matiere } = transformedItems[0]; // Assuming all items have the same ecole, classe, and matiere
+      const deleteQuery = `
+        DELETE FROM fourniture_classes_2 
+        WHERE ecole = $1 AND classe = $2 AND matiere = $3
       `;
-      const existingDataResponse = await pool.query(existingDataQuery, [ecole, classe, matiere]);
-      const existingData = existingDataResponse.rows[0];
+      await client.query(deleteQuery, [ecole, classe, matiere]);
 
-      if (existingData) {
-          // If data exists, update the existing record
-          const updateQuery = `
-              UPDATE fourniture_classes
-              SET fourniture_list = $1
-              WHERE nom_ecole = $2 AND nom_classe = $3 AND nom_matiere = $4
-          `;
-          await pool.query(updateQuery, [selectedItems, ecole, classe, matiere]);
+      // Construct the INSERT query
+      const insertQuery = `
+        INSERT INTO fourniture_classes_2 
+        (ecole, classe, matiere, matiere_order, item_id, item_quantity, selected_color, similar_item, display_order, final_id, is_option)
+        VALUES ${transformedItems.map((_, index) => `($${index * 11 + 1}, $${index * 11 + 2}, $${index * 11 + 3}, $${index * 11 + 4}, $${index * 11 + 5}, $${index * 11 + 6}, $${index * 11 + 7}, $${index * 11 + 8}, $${index * 11 + 9}, $${index * 11 + 10}, $${index * 11 + 11})`).join(',')}
+      `;
 
-          res.status(200).json({ message: 'Data updated successfully' });
-      } else {
-          // If data doesn't exist, insert a new record
-          const insertQuery = `
-              INSERT INTO fourniture_classes (nom_ecole, nom_classe, nom_matiere, fourniture_list)
-              VALUES ($1, $2, $3, $4)
-          `;
-          await pool.query(insertQuery, [ecole, classe, matiere, selectedItems]);
+      // Flatten the transformedItems array to construct values for insertion
+      const values = transformedItems.flatMap(item => [
+        item.ecole,
+        item.classe,
+        item.matiere,
+        item.matiere_order,
+        item.item_id,
+        item.item_quantity || 1,
+        item.selected_color || 'no color',
+        JSON.stringify(item.similar_item), // Convert similar_item to JSON string
+        item.display_order || 1,
+        item.final_id || 1,
+        item.is_option
+      ]);
 
-          res.status(200).json({ message: 'Data inserted successfully' });
-      }
-  } catch (error) {
-      console.error('Error inserting/updating data:', error);
+      // Execute the query with the provided parameters
+      await client.query(insertQuery, values);
+
+      // Commit the transaction
+      await client.query('COMMIT');
+
+      res.status(200).json({ message: 'Data submitted successfully' });
+    } catch (error) {
+      // Rollback the transaction in case of error
+      await client.query('ROLLBACK');
+      console.error('Error submitting data:', error);
       res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-app.post('/creation_liste_2', async (req, res) => {
-  try {
-    const transformedItems = req.body;
-console.log(req.body)
-    // Construct the SQL query
-    const query = `
-    INSERT INTO fourniture_classes_2 (ecole, classe, matiere, matiere_order, item_id, item_quantity, selected_color, similar_item, display_order,final_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-  `;
-
-  // Extract and format data to be inserted into the database
-  const values = transformedItems.flatMap(item => [
-    item.ecole,
-    item.classe,
-    item.matiere,
-    item.matiere_order,
-    item.item_id,
-    item.item_quantity || 1, // Default to 1 if item_quantity is not provided
-    item.selected_color || 'no color',
-    JSON.stringify(item.similar_item), // Convert similar_item to JSON string
-    item.display_order || 1, // Default to 1 if display_order is not provided
-    item.final_id // Default to 1 if display_order is not provided
-  ]);
-
-  // Execute the query with the provided parameters
-  await pool.query(query, values);
-
-  res.status(200).json({ message: 'Data submitted successfully' });
-  } catch (error) {
-    console.error('Error submitting data:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+    } finally {
+      // Release the client back to the pool
+      client.release();
+    }
+  });
 
   app.get('/all_fourniture_classe_2', async (req, res) => {
     try {
       const { ecole, classe } = req.query;
       const response = await pool.query(
-        "SELECT fc2.*, coalesce(pf.name_to_display, pm.name_to_display) name, coalesce(pm.prix, pf.price) prix,isbn_numeric, pf.available_colors, coalesce(pf.product_picture, pm.image) image, pf.category, final_id FROM fourniture_classes_2 fc2 left join produits_fournitures pf on fc2.item_id= pf.id  left join produits_manuelles pm on fc2.item_id = pm.id  WHERE fc2.ecole = $1 AND fc2.classe = $2 order by matiere_order,display_order", [ecole, classe]);
+        "SELECT fc2.*, coalesce(pf.name_to_display, pm.name_to_display) name, coalesce(pm.prix, pf.prix) prix,isbn_numeric, pf.available_colors, coalesce(pf.image, pm.image) image, pf.category, final_id, pm.matiere manuelle_matiere FROM fourniture_classes_2 fc2 left join produits_fournitures pf on fc2.item_id= pf.id  left join produits_manuelles pm on fc2.item_id = pm.id  WHERE fc2.ecole = $1 AND fc2.classe = $2 order by matiere_order,display_order", [ecole, classe]);
       res.json(response.rows); 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -281,6 +303,7 @@ console.log(req.body)
     }
   });
 
+
   app.get('/get_orders_by_user', async (req, res) => {
     try {
       const { user_id } = req.query;
@@ -334,7 +357,7 @@ console.log(req.body)
         const response = await pool.query("SELECT distinct categorie_1, categorie_2 FROM fourniture_2");
         res.json(response.rows);}
     catch{
-        console.log("erreur_fournitures_category");}});
+  }});
 
   app.get('/fournitures_by_category', async (req, res) => {
           try {
@@ -345,14 +368,14 @@ console.log(req.body)
             console.error('Error fetching data:', error);
             res.status(500).json({ error: 'Internal Server Error' });
           }
-        });
+  });
  
   app.get('/livre_category', async (req, res) => {
           try {
               const response = await pool.query("SELECT distinct niveau,category_1, category_2 FROM livres");
               res.json(response.rows);}
           catch{
-              console.log("erreur_livre_category");}});
+  }});
   
   app.get('/livre_data', async (req, res) => {
                 try {
@@ -364,19 +387,19 @@ console.log(req.body)
                   console.error('Error fetching data:', error);
                   res.status(500).json({ error: 'Internal Server Error' });
                 }
-              });
+  });
 
-    app.get('/produit_fournitures', async (req, res) => {
+  app.get('/produit_fournitures', async (req, res) => {
                 try {
                     const query = `
                         SELECT 
                             id,
                             name_to_display,
-                            name, 
+                            nom, 
                             brand,
-                            price,
+                            prix, 
                             available_colors,
-                            product_picture, 
+                            image, 
                             source,
                             category,
                             subcategory,
@@ -390,20 +413,20 @@ console.log(req.body)
                     console.error("Error:", error);
                     res.status(500).json({ error: 'Internal Server Error' });
                 }
-            });
+  });
 
-            app.get('/Fourniture/:product_id', async (req, res) => {
+  app.get('/Fourniture/:product_id', async (req, res) => {
               const { product_id } = req.params;
               try {
                   const query = `
                       SELECT 
                           id,
                           name_to_display,
-                          name, 
+                          nom, 
                           brand,
-                          price,
+                          prix,
                           available_colors,
-                          product_picture, 
+                          image, 
                           source,
                           category,
                           subcategory,
@@ -425,9 +448,9 @@ console.log(req.body)
                   console.error("Error:", error);
                   res.status(500).json({ error: 'Internal Server Error' });
                 }
-          });
+  });
 
-          app.get('/Manuelle/:product_id', async (req, res) => {
+  app.get('/Manuelle/:product_id', async (req, res) => {
             const { product_id } = req.params;
             try {
                 const query = `
@@ -456,10 +479,9 @@ console.log(req.body)
                 console.error("Error:", error);
                 res.status(500).json({ error: 'Internal Server Error' });
               }
-        });
+  });
 
-
-    app.get('/produit_manuelles', async (req, res) => {
+  app.get('/produit_manuelles', async (req, res) => {
       try {
           const query = `
               SELECT 
@@ -478,7 +500,7 @@ console.log(req.body)
   app.get('/get_all_products_category', async (req, res) => {
     try {
       const { category } = req.query;
-      const response = await pool.query("SELECT * FROM produits_fournitures WHERE category ilike $1 order by price", [`%${category}%`]);
+      const response = await pool.query("SELECT * FROM produits_fournitures WHERE category ilike $1 order by prix", [`%${category}%`]);
       res.json(response.rows);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -486,6 +508,50 @@ console.log(req.body)
     }
   });
   
+  app.get('/getting_items_data', async (req, res) => {
+    const { item_ids } = req.query;
+  
+    if (!item_ids) {
+      return res.status(400).send('item_ids query parameter is required');
+    }
+  
+    try {
+      // Parse the item_ids JSON string to create an array of IDs
+      const itemIdsArray = JSON.parse(item_ids);
+  
+      // Construct the SQL query to fetch the relevant data
+      const queryText = `
+        SELECT fc2.*, 
+               coalesce(pf.name_to_display, pm.name_to_display) AS name, 
+               coalesce(pm.prix, pf.prix) AS prix, 
+               isbn_numeric, 
+               pf.available_colors, 
+               coalesce(pf.image, pm.image) AS image, 
+               pf.category, 
+               final_id, 
+               pm.matiere AS manuelle_matiere 
+        FROM fourniture_classes_2 fc2 
+        LEFT JOIN produits_fournitures pf ON fc2.item_id = pf.id  
+        LEFT JOIN produits_manuelles pm ON fc2.item_id = pm.id  
+        WHERE fc2.item_id = ANY($1::text[])
+        ORDER BY matiere_order, display_order;
+      `;
+//console.log('Executing query:', queryText, 'with values:', itemIdsArray); // Debug log
+  
+      // Execute the query
+      const result = await pool.query(queryText, [itemIdsArray]);
+  
+      // Send the result back to the client
+      res.json(result.rows);
+    } catch (err) {
+      console.error('Error executing query', err.stack);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+
+  app.post('/ajouter_manuel', async (req, res) => {
+    console.log(req.body)
+  })
 
 app.listen(4000, () =>{ 
     console.log("server has started on port 4000")

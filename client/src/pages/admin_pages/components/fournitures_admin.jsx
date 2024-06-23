@@ -10,7 +10,7 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
   const [subcategories, setSubcategories] = useState([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sortColumn, setSortColumn] = useState('price'); // Sort by price by default
+  const [sortColumn, setSortColumn] = useState('prix'); // Sort by prix by default
   const [sortDirection, setSortDirection] = useState('desc'); // Descending order by default
   const [filterText, setFilterText] = useState('');
   const [selectedColors, setSelectedColors] = useState({});
@@ -22,10 +22,14 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
         if (cachedFournitures) {
           cachedFournitures = JSON.parse(cachedFournitures);
           setFournitures(cachedFournitures);
+          const uniqueCategories = [...new Set(cachedFournitures.map((fourniture) => fourniture.category))];
+          setCategories(uniqueCategories);
         } else {
           const response = await axios.get('/produit_fournitures');
           sessionStorage.setItem('fournitures', JSON.stringify(response.data));
           setFournitures(response.data);
+          const uniqueCategories = [...new Set(response.data.map((fourniture) => fourniture.category))];
+          setCategories(uniqueCategories);
         }
         setLoading(false);
       
@@ -37,12 +41,6 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
 
     fetchData();
   }, []);
-
-  useEffect(() => {
-    const cachedFournitures = JSON.parse(sessionStorage.getItem('fournitures'));
-    const uniqueCategories = [...new Set(cachedFournitures.map((fourniture) => fourniture.category))];
-    setCategories(uniqueCategories);
-  }, [fournitures]);
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
@@ -89,11 +87,11 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
 
   const sortedFournitures = [...fournitures].sort((a, b) => {
     if (sortColumn) {
-      // Convert price to numbers before comparison
-      const first = sortColumn === 'price' ? parseFloat(a[sortColumn]) : a[sortColumn].toUpperCase();
-      const second = sortColumn === 'price' ? parseFloat(b[sortColumn]) : b[sortColumn].toUpperCase();
+      // Convert prix to numbers before comparison
+      const first = sortColumn === 'prix' ? parseFloat(a[sortColumn]) : a[sortColumn].toUpperCase();
+      const second = sortColumn === 'prix' ? parseFloat(b[sortColumn]) : b[sortColumn].toUpperCase();
       const direction = sortDirection === 'asc' ? 1 : -1;
-      if (sortColumn === 'price') {
+      if (sortColumn === 'prix') {
         return (first - second) * direction;
       }
       return first.localeCompare(second) * direction;
@@ -233,9 +231,9 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                   )}
                 </th>
     
-                <th className='text-left' onClick={() => handleSort('price')}>
+                <th className='text-left' onClick={() => handleSort('prix')}>
                   Prix
-                  {sortColumn === 'price' && (
+                  {sortColumn === 'prix' && (
                     <span>{sortDirection === 'asc' ? ' ▲' : ' ▼'}</span>
                   )}
                 </th>
@@ -245,12 +243,12 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
               {sortedFournitures
                 .filter((fourniture) => !selectedCategory || fourniture.category === selectedCategory)
                 .filter((fourniture) => !selectedSubcategory || fourniture.subcategory === selectedSubcategory || selectedSubcategory === 'all')
-                .filter((fourniture) => fourniture.name.toLowerCase().includes(filterText.toLowerCase())) // Filter by product name
+                .filter((fourniture) => fourniture.nom.toLowerCase().includes(filterText.toLowerCase())) // Filter by product name
 
                 .map((fourniture) => (
 
                   <tr className='border'  key={fourniture.id}>
-                    <td className='pr-4'> <img src={fourniture.product_picture} alt={fourniture.name} style={{ maxWidth: '100px', maxHeight: '100px' }} /></td>
+                    <td className='pr-4'> <img src={fourniture.image} alt={fourniture.nom} style={{ maxWidth: '100px', maxHeight: '100px' }} /></td>
                     <td className='text-left'>
                         <div className='flex'>
                     <div className='mr-5'>{fourniture.category}</div>
@@ -261,7 +259,7 @@ const Fournitures_admin = ({ setFourniture_info }) => { // Destructure setFourni
                     {fourniture.available_colors && renderColorDropdowns(fourniture.available_colors, fourniture.id)}
 
                     </td>
-                    <td className='text-left'>{fourniture.price}</td>
+                    <td className='text-left'>{fourniture.prix}</td>
                     <td  className='text-left pl-5'> <button onClick={() => handleAddToSelected(fourniture)}>Add to List</button> {/* Button to add product to selected list */}</td>
                   </tr>
 

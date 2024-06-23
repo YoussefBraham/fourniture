@@ -7,6 +7,7 @@ import Manuelles_admin from './components/manuelles_admin.jsx';
 export default function CreationListeScolaire() {
   const [ecoles, setEcoles] = useState([]);
   const [dataEcole, setDataEcole] = useState([]);
+  const [selectedAnnee, setSelectedAnnee] = useState('');
   const [selectedEcole, setSelectedEcole] = useState('');
   const [selectedClasse, setSelectedClasse] = useState('');
   const [classes, setClasses] = useState([]);
@@ -14,14 +15,20 @@ export default function CreationListeScolaire() {
   const [selectedItems, setSelectedItems] = useState([]);
   const [directingToSimilarProduct, setDirectingToSimilarProduct] = useState(false);
   const [similarItemIndex, setSimilarItemIndex] = useState([]);
-  const [showModal, setShowModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState('');
   const [loadedliste, setloadedliste] = useState([]);
   const [showFournitures, setShowFournitures] = useState(false);
+  const [isOption, setIsOption] = useState(false);
+ 
 
   const toggleFournitures = () => {
-    setShowFournitures(!showFournitures);
+    setShowFournitures(true);
   };
+
+  const toggleManuels = () => {
+    setShowFournitures(false);
+  };
+
   const matieres = [
     'Français',
     'Histoire-Geo',
@@ -37,8 +44,15 @@ export default function CreationListeScolaire() {
     'Fournitures Scolaire',
     'Trousse & petites fournitures',
     'Questionner le Monde',
-    'Manuelles'
+    'Manuels',
+    'Education musicale'
     ];
+
+    const annees = [
+      '2022/2023',
+      '2023/2024',
+      '2024/2025'
+      ];
 
   // fetching ecole list
   useEffect(() => {
@@ -49,6 +63,11 @@ export default function CreationListeScolaire() {
       setDataEcole(ecolesData);
     });
   }, []);
+
+  const handleAnneeScolaireChance = (event) => {
+    const selectedAnnee = event.target.value;
+    setSelectedAnnee(selectedAnnee);
+  };
 
   const handleEcoleChange = (event) => {
     const selectedEcoleValue = event.target.value;
@@ -73,35 +92,20 @@ export default function CreationListeScolaire() {
     setSelectedMatiere(event.target.value);
   };
 
-  function removeCircularReferences(obj) {
-    const seenObjects = new WeakSet();
-    function detect(obj) {
-      if (obj && typeof obj === 'object') {
-        if (seenObjects.has(obj)) {
-          return true; // Circular reference detected
-        }
-        seenObjects.add(obj);
-        for (const key in obj) {
-          if (obj.hasOwnProperty(key) && detect(obj[key])) {
-            delete obj[key]; // Remove circular reference
-            // Or handle it in another way, e.g., replace it with a string indicating a circular reference was removed
-          }
-        }
-      }
-      return false;
-    }
-  
-    detect(obj);
-    return obj;
-  }
+  const handleAnneeChange = (event) => {
+    setSelectedAnnee(event.target.value);
+  };
 
+ 
   const handleSendToBackend = () => {
+
     // Prepare data to be sent to the backend
     const requestData = {
       ecole: selectedEcole,
       classe: selectedClasse,
       matiere: selectedMatiere,
       matiere_order: matiereOrder,
+      annee_scolaire: selectedAnnee
     };
   
     // Create an array to hold the transformed items
@@ -111,24 +115,27 @@ export default function CreationListeScolaire() {
     selectedItems.forEach((item, index) => {
       // Push a new object for each item to the transformedItems array
       transformedItems.push({
+        annee_scolaire:  selectedAnnee,    
         ecole: selectedEcole,
         classe: selectedClasse,
         matiere: selectedMatiere,
         matiere_order: matiereOrder,
-        item_id: item.id,
-        item_quantity: item.quantity || 1,
-        selected_color: item.selectedColor || 'no color' ,
-        similar_item: item.similarItems ,
-        display_order:  parseInt(item.item_display_order) || 1,// Default to 0 if display order is not set
-        final_id: item.id + '-' + selectedMatiere + '-' + (parseInt(item.item_display_order) || 1)
+        item_id: item.item_id,
+        item_quantity: item.item_quantity || 1,
+        selected_color: item.selected_color || 'no color' ,
+        similar_item: item.similar_item ,
+        display_order:  parseInt(item.display_order) || 1,// Default to 0 if display order is not set
+        final_id: selectedClasse + '-' + item.item_id + '-' + selectedMatiere + '-' + (parseInt(item.display_order) || 1),
+        is_option: item.is_option ? 'true' : null,
+        is_new: item.is_new ? 'true' : null,
+        is_cahier_dexerxice: item.is_cahier_dexerxice ? 'true' : null,
 
       });
     });
   
+    console.log('transformedItems',transformedItems)
     // Add the transformed items to the requestData object
-    console.log('transformedItems', transformedItems);
     // Make an HTTP request to send the data to your backend
-    console.log(transformedItems)
      axios.post('/creation_liste_2', transformedItems)
       .then((response) => {
         console.log('Data sent to backend successfully:', response.data);
@@ -142,16 +149,14 @@ export default function CreationListeScolaire() {
       });
   };
 
-  const handleDataFromChild = (data) => {
-    console.log("data",data)
-    console.log('data.id',data.id)
+  const handleDataFromChild = (data) => {    
     if (directingToSimilarProduct) {
         const selectedIndex = similarItemIndex; // Assuming similarItemIndex is the index received from the button AddSimilarProduct
         setSelectedItems(prevItems => {
             const updatedItems = [...prevItems];
             if (updatedItems[selectedIndex]) {
                 // If selectedItem at the selectedIndex exists, add the data to its similarItems
-                updatedItems[selectedIndex].similarItems = [...(updatedItems[selectedIndex].similarItems || []), data.id];
+                updatedItems[selectedIndex].similar_item = [...(updatedItems[selectedIndex].similar_item || []), data.id];
             }
             return updatedItems;
         });
@@ -159,12 +164,11 @@ export default function CreationListeScolaire() {
 
     } else {
         // If directingToSimilarProduct is false, add the data to selectedItems
-        setSelectedItems(prevItems => [...prevItems, data]);
-        setSelectedItems(prevItems => [...prevItems, { ...data, item_display_order: 1 }]); // Set default display_order to 1
+        //setSelectedItems(prevItems => [...prevItems, data]);
+        setSelectedItems(prevItems => [...prevItems, { ...data,item_id: data.id , item_display_order:  1 , is_option: false }]);
 
     }
     setDirectingToSimilarProduct(false);
-    console.log('selectedItems',selectedItems)
 };
 
   const handleRemoveItem = (index) => {
@@ -187,22 +191,10 @@ const handleQuantityChange = (index, event) => {
     // Update the quantity of the selected item
     setSelectedItems(prevItems => {
       const updatedItems = [...prevItems];
-      updatedItems[index].quantity = quantity;
+      updatedItems[index].item_quantity = quantity;
       return updatedItems;
     });
   }
-};
-
-// Function to open modal and set selected image URL
-const openModal = (imageUrl) => {
-  setSelectedImageUrl(imageUrl);
-  setShowModal(true);
-};
-
-// Function to close modal
-const closeModal = () => {
-  setSelectedImageUrl('');
-  setShowModal(false);
 };
 
 useEffect(() => {
@@ -215,49 +207,69 @@ useEffect(() => {
       }
     })
     .then((response) => {
-      setloadedliste(response.data)
+    setloadedliste(response.data)
             // Handle the fetched data
     })
     .catch((error) => {
       console.error('Error fetching data:', error);
     });
-  }
+  
+    
+      }
 }, [selectedEcole,selectedMatiere]);
 
 useEffect(() => {
   if (loadedliste) {
-    const cleanedData = loadedliste.map((matiere) => {
-      if (matiere.fourniture_list !== undefined) {
-        const stringWithoutFirstTwo = matiere.fourniture_list.slice(2);
-        const stringWithoutLastTwo = stringWithoutFirstTwo.slice(0, -2);
-        const test = stringWithoutLastTwo.split('","');
-
-        const parsedItems = test.map((list) => JSON.parse(list.replace(/\\/g, '')));
-
-        return {
-          nom_ecole: matiere.nom_ecole,
-          nom_classe: matiere.nom_classe,
-          nom_matiere: matiere.nom_matiere,
-          fourniture_list: parsedItems,
-        };
+    const itemIds = loadedliste.map(item => item.item_id);    
+    axios.get('/getting_items_data', {
+      params: {
+        item_ids: JSON.stringify(itemIds)
       }
-      return null; // or handle the case when fourniture_list is undefined
+    })
+    .then(response => {
+      console.log("loadedliste",loadedliste)
+      setSelectedItems(loadedliste.map(item => ({ 
+        classe: item.classe,
+        item_display_order: item.display_order,
+        ecole: item.ecole,
+        final_id: item.final_id,
+        is_option: item.is_option,
+        item_id: item.item_id,
+        item_quantity: item.item_quantity,
+        matiere: item.matiere,
+        selected_color: item.selected_color,
+        similar_item: item.similar_item,
+  
+       })));
+       console.log('loadedliste[0].matiere_order',loadedliste[0].matiere_order)
+       setMatiere_order(loadedliste[0].matiere_order)
+      
+       const updatedSelectedItems = loadedliste.map(item => {
+        const matchedItem = response.data.find(responseItem => responseItem.item_id === item.item_id);
+        return {
+          ...item,
+          image: matchedItem ? matchedItem.image : null,
+          nom: matchedItem ? matchedItem.name : null,
+          prix: matchedItem ? matchedItem.prix : null
+
+        };
+      });
+      setSelectedItems(updatedSelectedItems);
+    })
+    .catch(error => {
+      console.error('Axios GET error:', error);
+      // Handle the error
     });
-    // Ensure cleanedData has at least one element before accessing its first element
-    if (cleanedData.length > 0) {
-      setSelectedItems(cleanedData[0].fourniture_list);
-    } else {
-      setSelectedItems([]);
-    }
   } else {
     setSelectedItems([]);
   }
 }, [loadedliste]);
 
-
+console.log('selectedItems',selectedItems)
 
 // Function to generate the "Article number X" messages based on quantity
 const renderArticleNumbers = (quantity, availableColors, itemid,index) => {
+
   const colors = parseAvailableColors(availableColors);
   let articles = [];
   const test = Array(quantity).fill(colors[0])
@@ -297,10 +309,39 @@ const parseAvailableColors = (colorsString) => {
 }
 };
 
+const handleCheckboxChange = (index, event) => {
+  const { checked } = event.target;
+  setSelectedItems(prevItems => {
+    const updatedItems = [...prevItems];
+    updatedItems[index].is_option = checked;
+    return updatedItems;
+  });
+};
+
+const handleIsNew = (index, event) => {
+  const { checked } = event.target;
+  setSelectedItems(prevItems => {
+    const updatedItems = [...prevItems]
+    updatedItems[index].is_new = checked
+    console.log('handleIsNew', updatedItems[index]);
+    return updatedItems;
+  });
+};
+
+const handleCahierdExercice = (index, event) => {
+  const { checked } = event.target;
+  setSelectedItems(prevItems => {
+    const updatedItems = [...prevItems]
+    updatedItems[index].is_cahier_dexerxice = checked
+    console.log('handleIsNew', updatedItems[index]);
+    return updatedItems;
+  });
+};
+
 const handleItemDisplayOrderChange = (index, value) => {
   setSelectedItems(prevItems => {
       const updatedItems = [...prevItems];
-      updatedItems[index].item_display_order = value;
+      updatedItems[index].display_order = value;
       return updatedItems;
   });
 };
@@ -311,9 +352,27 @@ const [matiereOrder, setMatiere_order] = useState(1);
     setMatiere_order(newQuantity);}
 
 
+  console.log('selectedItems',selectedItems)
+
 return (
     <div className="flex flex-col items-center justify-center border rounded-2xl">
       <div className="flex">
+
+        {/*Select annee scolaire*/}
+        <div className="p-2 m-4 border rounded-xl border-gray-600">
+          <select
+            value={selectedAnnee}
+            onChange={handleAnneeChange}
+          >
+            <option value="">Année Scolaire</option>
+            {annees.map((annee, index) => (
+              <option key={index} value={annee}>
+                  {annee}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/*Select ecole*/}
         <div className="p-2 m-4 border rounded-xl border-gray-600">
           <select
@@ -363,15 +422,14 @@ return (
       
 
       <div className="m-4 p-2 border rounded-xl border-gray-600 w-full flex flex-col items-center justify-between">
-        <p>Selected Ecole: {selectedEcole}</p>
-        <p>Selected Classe: {selectedClasse}</p>
-        <p>Selected Matiere: {selectedMatiere}</p>
-        <p>Matiere display Order:        <input
+        <p className='mb-5'>Matiere display Order:        <input
               className='border'
               type="number"
               value={matiereOrder}
               onChange={(e) => handleMatiereOrder(e.target.value)}
-            /></p>  
+            /></p> 
+        
+
 
         <p>Selected fournitures: </p>
         {selectedItems ? (
@@ -383,10 +441,14 @@ return (
       <th className="border-r p-2 text-left">Name</th>
       <th className="border-r p-2 text-left">Quantity</th>
       <th className="border-r p-2 text-left">Color</th>
-      <th className="border-r p-2 text-left">Price</th>
+      <th className="border-r p-2 text-left">prix</th>
       <th className="p-2 text-left border">Actions</th>
       <th className="p-2 text-left">Similar products</th>
       <th className="p-2 text-left">display_order</th>
+      <th className="p-2 text-left">is_option?</th>
+      <th className="p-2 text-left">Nouveau?</th>
+      <th className="p-2 text-left">cachier d'exercice?</th>
+
 
 
     </tr>
@@ -396,15 +458,15 @@ return (
       
       <tr className="border-b" key={index}>
         <td className="border-r p-2">
-          <img onClick={() => openModal(imageUrl)} src={item.id.charAt(0) === 'M' ? item.image : item.product_picture  } alt= {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display} style={{ maxWidth: '100px', maxHeight: '100px' }} />
-          {showModal && (
-        <Modal onClose={closeModal} imageUrl={selectedImageUrl} />
-      )}
+          <img src={item.image } alt= { item.nom} style={{ maxWidth: '100px', maxHeight: '100px' }} />
+      
 
         </td>
         <td className="border-r p-2">
           <div className="flex flex-col">
-            <div className="text-left">  {item.id.charAt(0) === 'M' ? item.nom : item.name_to_display}</div>
+            <div className="text-left">  {item.nom }</div>
+            <div className="text-left">  {item.item_id }</div>
+
           </div>
         </td>
         <td className="border-r p-2 text-left">
@@ -413,16 +475,16 @@ return (
 <input className=''
         type="number"
         min="0" // Set min attribute to ensure quantity is greater than or equal to 1
-        value={item.quantity || 1} // Set default value to 1
+        value={item.item_quantity || 1} // Set default value to 1
         onChange={(event) => handleQuantityChange(index, event)}
       />
 
         </td>
-        <td className='border-r p-2'>{item.quantity > 1 && item.available_colors ?   renderArticleNumbers(item.quantity, item.available_colors, item.id) : (item.selectedColor || 'No color available')}</td>
+        <td className='border-r p-2'>{item.item_quantity > 1 && item.available_colors ?   renderArticleNumbers(item.item_quantity, item.available_colors, item.id) : (item.selected_color || 'no color')}</td>
 
         <td className="border-r p-2 text-left flex flex-col">
-          <div>Price per unit: {item.price}</div>
-          <div>Total price : {item.price * (item.quantity || 0)}</div>
+          <div>prix per unit: {item.prix}</div>
+          <div>Total prix : {item.prix * (item.item_quantity || 0)}</div>
           </td>
         <td className="p-2 border-r">
           <div className="flex flex-col items-center">
@@ -431,23 +493,52 @@ return (
           </div>
         </td>
         <td className="border-r p-2 text-left">            
-        {item.similarItems && item.similarItems.length > 0 ? (
+        {item.similar_item && item.similar_item.length > 0 ? (
   <div>
     <p className="text-left">Similar Items:</p>
-    {item.similarItems.map((similarItemId, similarIndex) => (
+    {item.similar_item}
+
+    {/*item.similarItems.map((similarItemId, similarIndex) => (
       <div className='flex flex-col' key={similarIndex}>
         <p className="text-left mr-4">{similarItemId}</p>
-        {/* You can add additional rendering logic here for each similar item */}
       </div>
-    ))}
+    ))*/}
   </div>
-) : null}</td>
+) : ''}</td>
         
-        <td className="border-r p-2 text-left">   <input
+        <td className="border-r p-2 text-left"> 
+          <input
     type="number"
-    value={item.item_display_order || 1} // Default value is 1 if no display_order is set
+    value={item.display_order || 1} // Default value is 1 if no display_order is set
     onChange={(e) => handleItemDisplayOrderChange(index, e.target.value)} // Implement this function to handle changes
     /></td>
+
+<td className="border-r p-2 text-left">    
+<input
+                type="checkbox"
+                checked={item.is_option}
+                onChange={(event) => handleCheckboxChange(index, event)}
+                style={{ marginLeft: '10px' }}              />
+  
+    </td>
+
+    <td className="border-r p-2 text-left">    
+<input
+                type="checkbox"
+                checked={item.is_new}
+                onChange={(event) => handleIsNew(index, event)}
+                style={{ marginLeft: '10px' }}              />
+  
+    </td>
+
+    <td className="border-r p-2 text-left">    
+<input
+                type="checkbox"
+                checked={item.is_cahier_dexerxice}
+                onChange={(event) => handleCahierdExercice(index, event)}
+                style={{ marginLeft: '10px' }}  />
+  
+    </td>
       </tr>
     ))}
     
@@ -466,9 +557,15 @@ return (
  {/* Button to toggle visibility of child component's content */}
 {/* Buttons to toggle visibility of components */}
 
-<button className="border p-3 rounded-2xl mt-10" onClick={toggleFournitures}>
-        {showFournitures ? 'Fourniture' : 'Manuelle'}
+<div className='flex '>
+<button className="border p-3 rounded-2xl mt-10 mr-5" onClick={toggleFournitures}>
+          Fournitures
       </button>
+
+      <button className="border p-3 rounded-2xl mt-10" onClick={toggleManuels}>
+        Manuels 
+     </button>
+     </div>
 
       {showFournitures ? (
         <Fournitures_admin setFourniture_info={handleDataFromChild} />

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { auth } from '../../firebase.js';
 import { useNavigate } from 'react-router-dom';
 import RenderColorQuantities  from '../pages/components/rendercolorquantites.jsx'
+import {Multiselect} from "multiselect-react-dropdown"
 
 
 
@@ -25,7 +26,8 @@ export default function IndexPage({ parsedItems }) {
   const [showAjouterunArticle, setShowAjouterunArticle] = useState(false);
   const[selectedColor,setSelectedColor] = useState([''])
   const [showColorsSelected, setShowColorsSelected] = useState(false); 
-  
+  const [options_to_select, setOptionsToSelect] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState([]);
 
 
 
@@ -58,7 +60,21 @@ useEffect(() => {
         const filteredDataEcole = response.data.filter((ecole_item) =>
           ecole_item.ecole === savedEcole
         );
-        const nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
+        let nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
+        console.log("nom_classe",nom_classe)
+        const predefinedOrder = ['ps', 'ms', 'gs', 'CP', 'CM1', 'CM2', 'Sixième']
+        nom_classe = nom_classe.sort((a, b) => {
+          const indexA = predefinedOrder.indexOf(a);
+          const indexB = predefinedOrder.indexOf(b);
+  
+          // If an item is not found in the predefinedOrder, put it at the end
+          const orderA = indexA !== -1 ? indexA : predefinedOrder.length;
+          const orderB = indexB !== -1 ? indexB : predefinedOrder.length;
+  
+          return orderA - orderB;
+        });
+  
+
         setClasses(nom_classe);
          const savedClasse = sessionStorage.getItem('selectedClasse');
        
@@ -67,15 +83,20 @@ useEffect(() => {
           fetchData(savedClasse, savedEcole);
           //getting Lien liste scolaire            
         }
+        const savedSelectedOptions = sessionStorage.getItem('selectedOptions');
+        if (savedSelectedOptions) {
+          setSelectedOptions(JSON.parse(savedSelectedOptions));
+        }
+
       }
     });
   }, []);
-// Getting classes when change ecole
+
+  // Getting classes when change ecole
 const handleEcoleChange = (event) => {
   const selectedEcoleValue = event.target.value;
   setSelectedEcole(selectedEcoleValue);
   sessionStorage.setItem('selectedEcole', selectedEcoleValue);
-console.log('dataEcole',dataEcole)
   const filteredDataEcole = dataEcole.filter((ecole_item) =>
     ecole_item.ecole === selectedEcoleValue
   );
@@ -96,7 +117,6 @@ console.log('dataEcole',dataEcole)
           },
         }).then((response) => {
           setLien_liste(response.data);
-          console.log('lien liste',response.data);
 
         });
       
@@ -108,14 +128,13 @@ console.log('dataEcole',dataEcole)
       },
     }).then((response) => {
       setListefourniture(response.data);
+
     }); 
 
   };
 
   const fetchData = (classe, ecole) => {
     // Fetch Lien liste scolaire
-    console.log('classe',classe)
-    console.log('ecole',ecole)
 
     axios.get('/lien_liste', {
       params: {
@@ -124,7 +143,6 @@ console.log('dataEcole',dataEcole)
       },
     }).then((response) => {
       setLien_liste(response.data);
-      console.log('setLien_liste',response.data)
     });
     
     // Fetch fournitures_liste
@@ -139,7 +157,7 @@ console.log('dataEcole',dataEcole)
   };
 
   useEffect(() => {
-    const sum = listefourniture.reduce((acc, element) => {
+    const sum = listefourniture.filter(item => item.is_option === null || item.to_display === true).reduce((acc, element) => {
       const quantity = element.item_quantity ; // Assuming quantity defaults to 1 if undefined
       const price_f = element.prix;
       return acc + (price_f * quantity); // Return the updated accumulator value
@@ -148,7 +166,8 @@ console.log('dataEcole',dataEcole)
     const roundedSum = parseFloat(sum.toFixed(3));
     setTotalSum(roundedSum);
   }, [listefourniture]);
-
+ 
+    
   const handleQuantityChange = (fournitureId, newQuantity) => {
     // Find the index of the item in listefourniture
     const currentIndex = listefourniture.findIndex((parsedItem) => parsedItem.final_id === fournitureId);  
@@ -178,7 +197,7 @@ console.log('dataEcole',dataEcole)
           acc.push({
             nom_matiere,
             items: fourniture_list.map(({ parsedItem }) => ({
-              furniture_id: parsedItem.id,
+              furniture_id: parsedItem.item_id,
               name: parsedItem.name,
               quantity: parsedItem.quantity,
             })),
@@ -274,10 +293,7 @@ console.log('dataEcole',dataEcole)
 
     // Remove event listener on component unmount
     return ()=> window.removeEventListener('resize', handleResize);
-  }, []); // Empty dependency array ensures the effect runs only once after initial render
-
-  // Your other JSX code using the `isMobile` state
-
+  }, []);
 
   const handleSimilarItemleft = async (item_id_import, similar_items, nom_matiere, final_id) => {
     // finding index of product to replace
@@ -306,11 +322,11 @@ console.log('dataEcole',dataEcole)
         newListefourniture[currentIndex].item_id = simItem1.id;
         newListefourniture[currentIndex].available_colors = simItem1.available_colors;
         newListefourniture[currentIndex].category = simItem1.category;
-        newListefourniture[currentIndex].image = simItem1.product_picture;
+        newListefourniture[currentIndex].image = simItem1.image;
         newListefourniture[currentIndex].isbn_numeric = simItem1.isbn_numeric;
         newListefourniture[currentIndex].name = simItem1.name_to_display;
         //newListefourniture[currentIndex].similar_item = simItem1.id;
-        newListefourniture[currentIndex].prix = simItem1.price;
+        newListefourniture[currentIndex].prix = simItem1.prix;
 
         return newListefourniture
       }
@@ -324,7 +340,7 @@ console.log('dataEcole',dataEcole)
       newListefourniture[currentIndex].similar_item = similarItemsString;
       return newListefourniture;
     });
-};
+   };
 
 const handleSimilarItemright = async (item_id_import, similar_items, nom_matiere,final_id) => {
 
@@ -350,11 +366,11 @@ const handleSimilarItemright = async (item_id_import, similar_items, nom_matiere
         newListefourniture[currentIndex].item_id = simItem1.id;
         newListefourniture[currentIndex].available_colors = simItem1.available_colors;
         newListefourniture[currentIndex].category = simItem1.category;
-        newListefourniture[currentIndex].image = simItem1.product_picture;
+        newListefourniture[currentIndex].image = simItem1.image;
         newListefourniture[currentIndex].isbn_numeric = simItem1.isbn_numeric;
         newListefourniture[currentIndex].name = simItem1.name_to_display;
         newListefourniture[currentIndex].similar_item = ''
-        newListefourniture[currentIndex].prix = simItem1.price;
+        newListefourniture[currentIndex].prix = simItem1.prix;
         return newListefourniture;
       });
     } catch (error) {
@@ -435,10 +451,10 @@ listefourniture[indexToReplace]
 listefourniture[indexToReplace].item_id = product.id;
 listefourniture[indexToReplace].available_colors = product.available_colors;
 listefourniture[indexToReplace].category = product.category;
-listefourniture[indexToReplace].image = product.product_picture;
+listefourniture[indexToReplace].image = product.image;
 listefourniture[indexToReplace].isbn_numeric = product.isbn_numeric;
 listefourniture[indexToReplace].name = product.name_to_display;
-listefourniture[indexToReplace].prix = product.price;
+listefourniture[indexToReplace].prix = product.prix;
 
 setShowProductList(false); // Hide the product list div
 setFetchedProducts([]); // Clear the fetched products
@@ -523,8 +539,6 @@ const renderColorQuantities = (colorCounts,final_id) => {
 };
 
 const handleChange = (color) => (event) => {
-  console.log('color', color);
-  console.log('colorCounts_1', initialColorCounts);
 };
 
 const renderColorQuantities_2 = (initialColorCounts) => {
@@ -549,21 +563,17 @@ const renderColorQuantities_2 = (initialColorCounts) => {
 };
 
 const addColorbutton = (value,final_id) => {
-console.log('addcolor',value)
 const currentIndex = listefourniture.findIndex((parsedItem) => parsedItem.final_id === final_id);  
-console.log("[item_quantity]",listefourniture[currentIndex].item_quantity)
-console.log("[selected_color]",listefourniture[currentIndex].selected_color)
+
 
 const updatedList = [...listefourniture];
 updatedList[currentIndex].item_quantity = parseInt(listefourniture[currentIndex].item_quantity) + 1;
 updatedList[currentIndex].selected_color += `, ${value}`;
 setListefourniture(updatedList);
 
-console.log("[item_quantity]",listefourniture[currentIndex].item_quantity)
-console.log("[selected_color]",listefourniture[currentIndex].selected_color)
+
 
 };
-
 
 const iframeRef = useRef(null);
 
@@ -645,17 +655,13 @@ useEffect(() => {
 const [colorsItemsIndex, setColorsItemsIndex] = useState([''])
 
 const show_colors_list = async (final_id) => {
-    console.log('final_id',final_id)
     setShowColorsSelected(true); 
-    console.log('showColorsSelected_1',showColorsSelected)
     const currentIndex = listefourniture.findIndex((parsedItem) => parsedItem.final_id === final_id);  
     setColorsItemsIndex(currentIndex)
 };
 
 const closeColorsModif = () =>{
-  console.log("closeColorsModif")
   setShowColorsSelected(false)
-  console.log('showColorsSelected_2',showColorsSelected)
 
 } 
 
@@ -664,7 +670,6 @@ const [updatedColorsString, setUpdatedColorsString] = useState('');
 const changeColors =() => {
 
   setShowColorsSelected(false)
-  console.log('after_change_color',listefourniture[colorsItemsIndex])
 }
 
 
@@ -679,12 +684,60 @@ setListefourniture(prevList => {
   const updatedList = [...prevList];
   updatedList[colorsItemsIndex].selected_color = colorsArray;
   updatedList[colorsItemsIndex].item_quantity = countedColors;
-  console.log("updatedList",updatedList[colorsItemsIndex])
 
   return updatedList;
 });
 };
 
+    // Handle select event
+    const handleSelect = (selectedList) => {
+      setSelectedOptions(selectedList);
+    };
+  
+    // Handle remove event
+    const handleRemove = (selectedList) => {
+      setSelectedOptions(selectedList);
+    };
+  
+  // Now displayed_listefourniture contains only the items that meet the filtering criteria
+  
+
+  useEffect(() => {
+    const selectedOptionsArray = selectedOptions.map(item => item.Matiere_3);
+
+    const updatedList = listefourniture.map(item => {
+      if (selectedOptionsArray.includes(item.manuelle_matiere)) {
+        return { ...item, to_display: true };
+      } else {
+        return { ...item, to_display: item.is_option === null ? true : false };
+      }
+    });
+
+    setListefourniture(updatedList);
+  }, [selectedOptions]);
+
+
+useEffect(() => {
+  if (listefourniture.length > 0) {
+    const distinctMatieres = [
+      ...new Set(
+        listefourniture
+          .filter((item) => item.is_option !== null)
+          .map((item) => item.manuelle_matiere)
+      ),
+    ];
+
+
+    const optionsToSelectData = distinctMatieres.map((matiere, index) => ({
+      Matiere_3: matiere,
+      id: index + 1,
+    }));
+
+    setOptionsToSelect(optionsToSelectData);
+  }
+}, [listefourniture]);
+
+  
   return (
     <div className={`flex flex-col items-center justify-center w-auto ${isMobile ? '' : ''}`}>
     
@@ -721,6 +774,22 @@ setListefourniture(prevList => {
                           ))}
                         </select>
                       </div>
+
+                      { selectedClasse && options_to_select && options_to_select.length > 0 && (
+                      <div className="p-2 m-2 border rounded-xl border-gray-300 bg-white"> 
+                      Mes options:                    
+                        <Multiselect
+                          options={options_to_select}
+                          selectedValues={selectedOptions}
+                          displayValue="Matiere_3"
+                          onSelect={handleSelect}
+                          onRemove={handleRemove}
+                          placeholder="Select matiere"
+                        />                           
+                        </div>
+                        )} 
+
+
                     </div>
 
           </div>
@@ -750,11 +819,27 @@ setListefourniture(prevList => {
                           ))}
                         </select>
                       </div>
+
+                      { selectedClasse && options_to_select && options_to_select.length > 0 && (
+                      <div className="p-2 m-2 border rounded-xl border-gray-300 bg-white"> 
+                      Mes options:                    
+                        <Multiselect
+                          options={options_to_select}
+                          selectedValues={selectedOptions}
+                          displayValue="Matiere_3"
+                          onSelect={handleSelect}
+                          onRemove={handleRemove}
+                          placeholder="Espagnol"
+                        />                           
+                        </div>
+                        )} 
                     </div>
 
                     <img className='flex-shrink-0 p-2 bg-white' src={'/to_do_list_2.png'} alt="User Profile" style={{ borderRadius: '50%', width: '200px', height: '200px' }} />
           </div>
         )}
+        
+
         
         {/* display all items*/}
         {showProductList && (
@@ -774,9 +859,9 @@ setListefourniture(prevList => {
               {isMobile? (<div className="flex flex-col justify-center">
         {fetchedProducts.map((product, index) => (
           <div key={product.id} className="flex flex-col items-center border rounded-2xl mb-3 last:border-b-0 p-4">
-            <img className="w-36 h-36 mb-3" src={product.product_picture} alt={product.name_to_display} />
+            <img className="w-36 h-36 mb-3" src={product.image} alt={product.name_to_display} />
             <div className="text-center mb-4">{product.name}</div>
-            <div className="text-xl font-bold mb-4">{product.price} Dnt</div>
+            <div className="text-xl font-bold mb-4">{product.prix} Dnt</div>
             <button 
               className="font-bold p-2 border rounded-2xl"
               onClick={() => handleReplaceProduct(product)} // Adjust parameters as needed
@@ -798,12 +883,12 @@ setListefourniture(prevList => {
         {fetchedProducts.map((product) => (
           <tr key={product.id} className="border">
             <td className="border p-2">
-              <img className="w-32 h-32 mb-3 p-2" src={product.product_picture} alt={product.name_to_display} />
+              <img className="w-32 h-32 mb-3 p-2" src={product.image} alt={product.name_to_display} />
               </td>
               <td className="border p-2 flex-col justify-around">
-              <div className="text-left line-clamp-2 mb-4">{product.name}</div>
+              <div className="text-left line-clamp-2 mb-4">{product.nom}</div>
               <div className='flex justify-between'>
-              <div className=' text-xl font-bold  mr-1' >{product.price} Dnt</div>
+              <div className=' text-xl font-bold  mr-1' >{product.prix} Dnt</div>
               </div>
               </td>
               <td className="">
@@ -925,7 +1010,7 @@ setListefourniture(prevList => {
                             {!collapseStates[index] && (    
                               <>  
                                         {/* Filter listefourniture for items with current matiere */}
-                            {listefourniture.filter(item => item.matiere === uniqueMatiere).map((filteredItem, filteredIndex) => (
+                            {listefourniture.filter(item => item.matiere === uniqueMatiere  &&  (item.is_option === null || item.to_display === true)).map((filteredItem, filteredIndex) => (
 
                               <div key={filteredIndex}  className="border rounded-lg p-4 "> {/* Use a unique key */}
                               <div className=' w-full flex justify-end'>

@@ -11,7 +11,7 @@ export default function Layout() {
 
   
   return (
-    <div className="mt-10  w-full top-0 left-0 right-0 " style={containerStyle}>
+    <div className="mt-10 flex flex-col justify-over h-screen  w-screen top-0 left-0 right-0 " style={containerStyle}>
       <Header />
       <Outlet />
       <Footer />
