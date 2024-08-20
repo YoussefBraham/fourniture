@@ -2,6 +2,7 @@ const functions = require('firebase-functions');
 const express = require("express");
 const app = express();
 const cors = require("cors")
+const { v4: uuidv4 } = require('uuid');
 const  pool = require('./db'); 
 
 app.use(cors({ 
@@ -13,7 +14,7 @@ app.use(express.json())
   
   app.get('/ecoles', async (req, res) => {
   try {
-      const response = await pool.query("SELECT distinct ecole, classe FROM fourniture_classes_2 order by ecole, classe");
+      const response = await pool.query("SELECT distinct ecole, classe FROM fourniture_classes_2 where annee_scolaire = '2024/2025' order by ecole, classe");
       res.json(response.rows);}
   catch  (error) {
       console.log("erreur_ecole_1",  error )}});
@@ -43,7 +44,7 @@ app.use(express.json())
   app.get('/fournitures_by_selection', async (req, res) => {
                 try {
                   const { ecole, classe, matiere } = req.query;
-                  const response = await pool.query("SELECT * FROM fourniture_classes_2 WHERE ecole = $1 AND classe = $2 AND matiere = $3 order by display_order", [ecole, classe, matiere]);
+                  const response = await pool.query("SELECT * FROM fourniture_classes_2 WHERE ecole = $1 AND classe = $2 AND matiere = $3  and annee_scolaire = '2024/2025' order by display_order", [ecole, classe, matiere]);
                   res.json(response.rows);
                 } catch (error) {
                   console.error('Error fetching data:', error);
@@ -101,7 +102,7 @@ app.use(express.json())
       const { ecole, classe, matiere } = transformedItems[0]; // Assuming all items have the same ecole, classe, and matiere
       const deleteQuery = `
         DELETE FROM fourniture_classes_2 
-        WHERE ecole = $1 AND classe = $2 AND matiere = $3
+        WHERE ecole = $1 AND classe = $2 AND matiere = $3 
       `;
       await client.query(deleteQuery, [ecole, classe, matiere]);
 
@@ -149,7 +150,7 @@ app.use(express.json())
     try {
       const { ecole, classe } = req.query;
       const response = await pool.query(
-        "SELECT fc2.*, coalesce(pf.name_to_display, pm.name_to_display) name, coalesce(pm.prix, pf.prix) prix,isbn_numeric, pf.available_colors, coalesce(pf.image, pm.image) image, pf.category, final_id, pm.matiere manuelle_matiere FROM fourniture_classes_2 fc2 left join produits_fournitures pf on fc2.item_id= pf.id  left join produits_manuelles pm on fc2.item_id = pm.id  WHERE fc2.ecole = $1 AND fc2.classe = $2 order by matiere_order,display_order", [ecole, classe]);
+        "SELECT fc2.*, coalesce(pf.name_to_display, pm.name_to_display) name, coalesce(pm.prix, pf.prix) prix,isbn_numeric, pf.available_colors, coalesce(pf.image, pm.image) image, pf.category, final_id, pm.matiere manuelle_matiere FROM fourniture_classes_2 fc2 left join produits_fournitures pf on fc2.item_id= pf.id  left join produits_manuelles pm on fc2.item_id = pm.id  WHERE fc2.ecole = $1 AND fc2.classe = $2  and annee_scolaire = '2024/2025' order by matiere_order,display_order", [ecole, classe]);
       res.json(response.rows); 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -160,7 +161,7 @@ app.use(express.json())
   app.get('/lien_liste', async (req, res) => {
     try {
       const { ecole, classe } = req.query;
-      const response = await pool.query("SELECT * FROM lien_liste WHERE nom_ecole = $1 AND classe = $2", [ecole, classe]);
+      const response = await pool.query("SELECT * FROM lien_liste WHERE nom_ecole = $1 AND classe = $2 and annee_scolaire = '2024/2025'", [ecole, classe]);
       res.json(response.rows); 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -534,6 +535,7 @@ app.use(express.json())
         LEFT JOIN produits_fournitures pf ON fc2.item_id = pf.id  
         LEFT JOIN produits_manuelles pm ON fc2.item_id = pm.id  
         WHERE fc2.item_id = ANY($1::text[])
+        and annee_scolaire = '2024/2025'
         ORDER BY matiere_order, display_order;
       `;
 //console.log('Executing query:', queryText, 'with values:', itemIdsArray); // Debug log
@@ -550,8 +552,99 @@ app.use(express.json())
   });
 
   app.post('/ajouter_manuel', async (req, res) => {
-    console.log(req.body)
-  })
+    const {
+      isbn,
+      nom,
+      editeur,
+      prix,
+      lien_image,
+      ecole,
+      classe,
+      description,
+      lien_source,
+    } = req.body;
+
+    const id = 'M-'+ ecole + '-'+ classe + '-'+isbn
+    const isbn_test = '"'+ isbn
+    const ecole_code = null
+    const ecole_classe =  ecole + '-'+ classe
+    const matiere = null
+    const name_to_display = nom
+    console.log('id',id)
+    console.log('isbn_test',isbn_test)
+    console.log('ecole_code',ecole_code)
+    console.log('ecole_classe',ecole_classe)
+    console.log('matiere',matiere)
+    console.log('name_to_display',name_to_display)
+
+    
+    try {
+      // Insert data into the produits_manuelles table
+      const query = `
+        INSERT INTO public.produits_manuelles
+        (id, isbn_test, isbn_numeric, ecole_code, ecole, classe, ecole_classe, matiere, nom, prix, description, lien, information, image,  name_to_display, created_at, creator_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,$10,$11,$12,$13,$14,$15, NOW(), 'youssebaham')
+        RETURNING *;
+      `;
+      const values = [id, isbn_test, isbn, ecole_code, ecole, classe, ecole_classe, matiere, nom, prix, description, lien_source, editeur, lien_image, name_to_display];
+      const result = await pool.query(query, values);
+  
+      res.status(201).json({ message: 'Data inserted successfully', data: result.rows[0] });
+    } catch (error) {
+      console.error('Error inserting data:', error);
+      res.status(500).json({ message: 'Error inserting data', error: error.message });
+    }
+  });
+
+
+  app.post('/ajouter_produit', async (req, res) => {
+    const {
+      nom,
+      marque,
+      prix,
+      couleur,
+      lienImage,
+      lienSource,
+      categoryAjouterProduit,
+      sousCategoryAjouterProduit,
+      description
+    } = req.body;
+
+    const uniqueId = uuidv4(); // Generate a unique identifier
+    const id = `F-${categoryAjouterProduit}-${uniqueId}`
+    const name_to_display = nom
+    console.log('id',id)
+    console.log('name_to_display',name_to_display)
+
+    
+    try {
+      // Insert data into the produits_manuelles table
+      const query = `
+        INSERT INTO public.produits_fournitures
+        (id, name_to_display, nom, brand, prix, available_colors, image, source, category, subcategory, description, created_at, creator_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,$10,$11, NOW(), 'youssefbraham')
+        RETURNING *;
+      `;
+      const values = [
+        id,
+        name_to_display,
+        nom,
+        marque,
+        prix,
+        couleur,
+        lienImage,
+        lienSource,
+        categoryAjouterProduit,
+        sousCategoryAjouterProduit,
+        description];
+      const result = await pool.query(query, values);
+  
+      res.status(201).json({ message: 'Data inserted successfully', data: result.rows[0] });
+    } catch (error) {
+      console.error('Error inserting data:', error);
+      res.status(500).json({ message: 'Error inserting data', error: error.message });
+    }
+  });
 
 app.listen(4000, () =>{ 
     console.log("server has started on port 4000")

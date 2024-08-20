@@ -62,7 +62,10 @@ useEffect(() => {
         );
         let nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
         console.log("nom_classe",nom_classe)
-        const predefinedOrder = ['ps', 'ms', 'gs', 'CP', 'CM1', 'CM2', 'Sixième']
+        const predefinedOrder = [
+          'TPS', 'PS', 'MS', 'GS', 'CP','CE1','CE2','CM1','CM2', 'Sixième', 'Cinquième', 'Quatrième', 'Troisième',
+          'Seconde', 'Première générale', 'Première STMG', 'Terminale générale', 'Terminale STMG'
+        ];
         nom_classe = nom_classe.sort((a, b) => {
           const indexA = predefinedOrder.indexOf(a);
           const indexB = predefinedOrder.indexOf(b);
@@ -101,6 +104,17 @@ const handleEcoleChange = (event) => {
     ecole_item.ecole === selectedEcoleValue
   );
   const nom_classe = filteredDataEcole.map((ecole_item) => ecole_item.classe);
+  const classOrder = [
+    'TPS', 'PS', 'MS', 'GS', 'CP','CE1','CE2','CM1','CM2', 'Sixième', 'Cinquième', 'Quatrième', 'Troisième',
+    'Seconde', 'Première générale', 'Première STMG', 'Terminale générale', 'Terminale STMG'
+  ];
+
+  // Sort classesArray based on the predefined order
+  nom_classe.sort((a, b) => {
+    const indexA = classOrder.indexOf(a);
+    const indexB = classOrder.indexOf(b);
+    return indexA - indexB;
+  });
   setClasses(nom_classe);
 };
 
@@ -703,6 +717,7 @@ setListefourniture(prevList => {
   
 
   useEffect(() => {
+    console.log('selectedOptions',selectedOptions)
     const selectedOptionsArray = selectedOptions.map(item => item.Matiere_3);
 
     const updatedList = listefourniture.map(item => {
@@ -722,11 +737,11 @@ useEffect(() => {
     const distinctMatieres = [
       ...new Set(
         listefourniture
-          .filter((item) => item.is_option !== null)
-          .map((item) => item.manuelle_matiere)
+        .filter((item) => item.is_option !== null && item.manuelle_matiere !== null)
+        .map((item) => item.manuelle_matiere)
       ),
     ];
-
+    console.log('distinctMatieres',distinctMatieres)
 
     const optionsToSelectData = distinctMatieres.map((matiere, index) => ({
       Matiere_3: matiere,
@@ -774,8 +789,8 @@ useEffect(() => {
                           ))}
                         </select>
                       </div>
-
-                      { selectedClasse && options_to_select && options_to_select.length > 0 && (
+{console.log('options_to_select', options_to_select)}
+                      { selectedClasse && options_to_select && options_to_select.length > 0 && options_to_select !== null && (
                       <div className="p-2 m-2 border rounded-xl border-gray-300 bg-white"> 
                       Mes options:                    
                         <Multiselect
@@ -820,7 +835,7 @@ useEffect(() => {
                         </select>
                       </div>
 
-                      { selectedClasse && options_to_select && options_to_select.length > 0 && (
+                      { selectedClasse && options_to_select && options_to_select.length > 0 && options_to_select !== null && (
                       <div className="p-2 m-2 border rounded-xl border-gray-300 bg-white"> 
                       Mes options:                    
                         <Multiselect

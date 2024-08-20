@@ -164,6 +164,7 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
       .then((response) => {
         console.log('Data sent to backend successfully:', response.data);
         alert('Data sent to backend successfully');
+        handleCloseProductList()
       })
       .catch((error) => {
         console.error('Error sending data to backend:', error);
@@ -191,9 +192,11 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                 type="text"
                 value={isbn}
                 onChange={(e) => setIsbn(e.target.value)}
+                pattern="\d*"                
                 required
               />
             </div>
+            Exemple: 9782321011620 enelever tiret, espace et tout caractere spécial
             <div className="flex flex-col items-center w-full px-10">
               <label className="mb-1" htmlFor="nom">Nom:</label>
               <input
@@ -217,8 +220,9 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                 required
               />
             </div>
+            Exemple: Le Robert
             <div className="flex flex-col items-center w-full px-10">
-              <label className="mb-1" htmlFor="prix">Prix:</label>
+              <label className="mb-1" htmlFor="prix">Prix en DNT:</label>
               <input
                 id="prix"
                 className="w-1/2 border border-black rounded-xl p-2"
@@ -228,6 +232,7 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                 required
               />
             </div>
+            Exemple: 136.5 ou 136
             <div className="flex flex-col items-center w-full px-10">
               <label className="mb-1" htmlFor="lien_image">Lien de l'image:</label>
               <input
@@ -239,6 +244,8 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                 required
               />
             </div>
+            Exemple: https://images.epagine.fr/620/9782321011620_1_75.jpg
+            verifier bien le .jpg 
             <div className="flex flex-col items-center w-full px-10">
               <label className="mb-1" htmlFor="ecole">Ecole:</label>
               <select
@@ -290,7 +297,9 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
                 required
               />
             </div>
+            Lien du site ou le prix est affiché
             <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Ajouter</button>
+          ATTENTION LE MANUEL N'APPARAIT AUTOMATIQUEMENT IL FAUT SUPPRIMER LE CACHE ET LES COOKIES LIEES AU SITE ET RECHARGER LA PAGE
           </form>
         </div>
       )}
@@ -355,7 +364,6 @@ const Manuelle = ({ setManuelle_info }) => { // Destructure setManuelle_info dir
               {sortedmanuelles.filter(manuelle => manuelle.nom.toLowerCase().includes(filterText.toLowerCase())).map((manuelle) => (                
                 
                 <tr key={manuelle.isbn}>
-                  {console.log('manuelle',manuelle)}
                   <td className="py-2 px-4 border-b w-min"><img src={manuelle.image} alt={manuelle.nom} className="w-32 h-32 object-cover items-center justify-center" /></td>
                   <td className="py-2 px-4 border-b flex-col w-min">
                     <div>{manuelle.nom}</div>

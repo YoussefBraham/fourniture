@@ -81,6 +81,17 @@ export default function CreationListeScolaire() {
       .map((classeString) => classeString.split(','))
       .flat()
       .map((classe) => classe.trim());
+      const classOrder = [
+        'TPS', 'PS', 'MS', 'GS', 'CP', 'Sixième', 'Cinquième', 'Quatrième', 'Troisième',
+        'Seconde', 'Première Génerale', 'Première STMG', 'Terminale Génerale', 'Terminale STMG'
+      ];
+  
+      // Sort classesArray based on the predefined order
+      classesArray.sort((a, b) => {
+        const indexA = classOrder.indexOf(a);
+        const indexB = classOrder.indexOf(b);
+        return indexA - indexB;
+      });
     setClasses(classesArray);
   };
 
@@ -133,7 +144,6 @@ export default function CreationListeScolaire() {
       });
     });
   
-    console.log('transformedItems',transformedItems)
     // Add the transformed items to the requestData object
     // Make an HTTP request to send the data to your backend
      axios.post('/creation_liste_2', transformedItems)
@@ -227,7 +237,6 @@ useEffect(() => {
       }
     })
     .then(response => {
-      console.log("loadedliste",loadedliste)
       setSelectedItems(loadedliste.map(item => ({ 
         classe: item.classe,
         item_display_order: item.display_order,
@@ -241,7 +250,6 @@ useEffect(() => {
         similar_item: item.similar_item,
   
        })));
-       console.log('loadedliste[0].matiere_order',loadedliste[0].matiere_order)
        setMatiere_order(loadedliste[0].matiere_order)
       
        const updatedSelectedItems = loadedliste.map(item => {
@@ -265,7 +273,6 @@ useEffect(() => {
   }
 }, [loadedliste]);
 
-console.log('selectedItems',selectedItems)
 
 // Function to generate the "Article number X" messages based on quantity
 const renderArticleNumbers = (quantity, availableColors, itemid,index) => {
@@ -323,7 +330,6 @@ const handleIsNew = (index, event) => {
   setSelectedItems(prevItems => {
     const updatedItems = [...prevItems]
     updatedItems[index].is_new = checked
-    console.log('handleIsNew', updatedItems[index]);
     return updatedItems;
   });
 };
@@ -333,7 +339,6 @@ const handleCahierdExercice = (index, event) => {
   setSelectedItems(prevItems => {
     const updatedItems = [...prevItems]
     updatedItems[index].is_cahier_dexerxice = checked
-    console.log('handleIsNew', updatedItems[index]);
     return updatedItems;
   });
 };
@@ -352,7 +357,6 @@ const [matiereOrder, setMatiere_order] = useState(1);
     setMatiere_order(newQuantity);}
 
 
-  console.log('selectedItems',selectedItems)
 
 return (
     <div className="flex flex-col items-center justify-center border rounded-2xl">
@@ -386,6 +390,14 @@ return (
               </option>
             ))}
           </select>
+          <input
+                id="category"
+                className="w-1/2 border border-black rounded-xl p-2"
+                type="text"
+                value={selectedEcole}
+                onChange={(e) => handleEcoleChange(e.target.value)}
+                required
+              />
         </div>
 
         {/*Select classe*/}
